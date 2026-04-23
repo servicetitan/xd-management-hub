@@ -22,7 +22,9 @@
       "Bash(npx --yes @babel/parser --plugins jsx)",
       "Bash(node -e ':*)",
       "Bash(netlify deploy:*)",
-      "Bash(npx netlify-cli:*)"
+      "Bash(npx netlify-cli:*)",
+      "Bash(node -e ' *)",
+      "Bash(node --input-type=module)"
     ]
   }
 }

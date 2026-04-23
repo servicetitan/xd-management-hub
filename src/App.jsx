@@ -34,6 +34,18 @@ const DEF_PMS = ["Daniel Weiss","Khachik Tadevosyan","Jon Diamond","Lilit Ghukas
 const SIZES = ["XS","S","M","L","XL"];
 const STATUS = { "Backlog":{color:"#90A4AE",bg:"#F5F5F5"}, "Not Started":{color:"#90A4AE",bg:"#F5F5F5"}, "In Progress":{color:"#1565C0",bg:"#E3F2FD"}, "Dev Support":{color:"#00796B",bg:"#E0F2F1"}, "Design QA":{color:"#BF360C",bg:"#FBE9E7"}, "In Review":{color:"#E65100",bg:"#FFF8E1"}, "On Hold":{color:"#C62828",bg:"#FFEBEE"}, "Done":{color:"#2E7D32",bg:"#E8F5E9"} };
 const ALL_STATUSES = ["Backlog","Not Started","In Progress","Dev Support","Design QA","In Review","On Hold","Done"];
+const PROJECT_TYPES = [
+  { label:"North Star",                          color:"#7C3AED", bg:"#F3EEFF" },
+  { label:"New Feature",                         color:"#1565C0", bg:"#E3F2FD" },
+  { label:"Enhancement",                         color:"#00796B", bg:"#E0F2F1" },
+  { label:"Discovery Insights",                  color:"#E65100", bg:"#FFF3E0" },
+  { label:"Experience Evaluation",               color:"#AD1457", bg:"#FCE4EC" },
+  { label:"Measurement / Performance Tracking",  color:"#0277BD", bg:"#E1F5FE" },
+  { label:"Direction / Prioritization",          color:"#4527A0", bg:"#EDE7F6" },
+  { label:"Framework Development",               color:"#2E7D32", bg:"#E8F5E9" },
+  { label:"Infrastructure",                      color:"#546E7A", bg:"#ECEFF1" },
+  { label:"Other",                               color:"#78909C", bg:"#F5F5F5" },
+];
 const LEAVE_TYPES = ["PTO","STO","Maternity Leave","Paternity Leave"];
 const LEAVE_COLORS = {"PTO":"#607D8B","STO":"#E65100","Maternity Leave":"#880E4F","Paternity Leave":"#4527A0"};
 const LEAVE_STATUSES = ["Planned","In Progress","Completed"];
@@ -501,7 +513,9 @@ function Popover({proj,color,onClose,onRemove,onEditProject,onOpenEdit}) {
       ):(
         <>{[["SIZE",<div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><div style={{display:"flex",gap:6}}>{SIZES.map(s=><button key={s} onClick={onEditProject?()=>onEditProject(proj.id,{size:s}):undefined} style={{fontSize:11,fontWeight:800,padding:"2px 7px",borderRadius:8,background:proj.size===s?color+"18":"#FAFAFA",color:proj.size===s?color:"#90A4AE",border:"1px solid "+(proj.size===s?color+"33":"#ECEFF1"),cursor:onEditProject?"pointer":"default",fontFamily:"monospace"}}>{s}</button>)}</div>{onEditProject&&<button onClick={()=>setShowCalc(true)} style={{fontSize:11,fontWeight:700,color:"#2563EB",background:"none",border:"none",cursor:"pointer",fontFamily:"'Inter',sans-serif",padding:0}}>{proj.calcScores?"Recalculate":"Calculate"}</button>}</div>],
           ...(proj.calcScores?[["CALC",<div style={{display:"flex",flexDirection:"column",gap:2}}>{SIZE_FACTORS.map(({key,label,options})=>{const idx=(proj.calcScores[key]||1)-1;return<span key={key} style={{fontSize:12,color:"#607D8B"}}><span style={{fontWeight:700,color:"#90A4AE"}}>{label.split(" ")[0]}:</span> {options[idx]||"--"}</span>;})}</div>]]:[]),
-          ["STATUS",<div style={{display:"inline-flex",alignItems:"center",position:"relative"}}><select value={st} onChange={onEditProject?e=>onEditProject(proj.id,{status:e.target.value}):undefined} disabled={!onEditProject} style={{fontSize:11,fontWeight:700,padding:"3px 24px 3px 6px",borderRadius:6,border:"1px solid "+sc.color+"33",background:sc.bg,color:sc.color,cursor:onEditProject?"pointer":"default",fontFamily:"'Inter',sans-serif",appearance:"none",opacity:1}}>{ALL_STATUSES.map(s=><option key={s} value={s}>{s}</option>)}</select><MI name="expand_more" size={12} style={{position:"absolute",right:4,pointerEvents:"none",color:sc.color}} /></div>],["SQUAD",<span style={{fontSize:12,color:"#0F172A"}}>{proj.squad||"--"}</span>],["PM",<span style={{fontSize:12,color:"#0F172A",lineHeight:1.5}}>{proj.pms?.join(", ")||"--"}</span>],["DATES",<span style={{fontSize:11,color:"#546E7A",fontFamily:"monospace"}}>{fmtM(proj.startDate)} → {fmtM(proj.endDate)}</span>]].map(([label,val])=><div key={label} style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:6}}><span style={{fontSize:11,fontWeight:700,color:"#90A4AE",width:44,flexShrink:0,paddingTop:2}}>{label}</span>{val}</div>)}</>
+          ["STATUS",<div style={{display:"inline-flex",alignItems:"center",position:"relative"}}><select value={st} onChange={onEditProject?e=>onEditProject(proj.id,{status:e.target.value}):undefined} disabled={!onEditProject} style={{fontSize:11,fontWeight:700,padding:"3px 24px 3px 6px",borderRadius:6,border:"1px solid "+sc.color+"33",background:sc.bg,color:sc.color,cursor:onEditProject?"pointer":"default",fontFamily:"'Inter',sans-serif",appearance:"none",opacity:1}}>{ALL_STATUSES.map(s=><option key={s} value={s}>{s}</option>)}</select><MI name="expand_more" size={12} style={{position:"absolute",right:4,pointerEvents:"none",color:sc.color}} /></div>],
+          ["TYPE",(()=>{const pt=PROJECT_TYPES.find(t=>t.label===proj.type);return onEditProject?(<div style={{display:"inline-flex",alignItems:"center",position:"relative"}}><select value={proj.type||""} onChange={e=>onEditProject(proj.id,{type:e.target.value})} style={{fontSize:11,fontWeight:600,padding:"3px 24px 3px 8px",borderRadius:20,border:`1px solid ${pt?pt.color+"33":"#ECEFF1"}`,background:pt?pt.bg:"#FAFAFA",color:pt?pt.color:"#90A4AE",cursor:"pointer",fontFamily:"'Inter',sans-serif",appearance:"none",opacity:1}}><option value="">No type</option>{PROJECT_TYPES.map(t=><option key={t.label} value={t.label}>{t.label}</option>)}</select><MI name="expand_more" size={12} style={{position:"absolute",right:6,pointerEvents:"none",color:pt?pt.color:"#90A4AE"}}/></div>):pt?(<span style={{fontSize:11,fontWeight:600,padding:"3px 10px",borderRadius:20,background:pt.bg,color:pt.color,border:`1px solid ${pt.color}33`}}>{pt.label}</span>):(<span style={{fontSize:12,color:"#90A4AE"}}>--</span>);})()],
+          ["SQUAD",<span style={{fontSize:12,color:"#0F172A"}}>{proj.squad||"--"}</span>],["PM",<span style={{fontSize:12,color:"#0F172A",lineHeight:1.5}}>{proj.pms?.join(", ")||"--"}</span>],["DATES",<span style={{fontSize:11,color:"#546E7A",fontFamily:"monospace"}}>{fmtM(proj.startDate)} → {fmtM(proj.endDate)}</span>]].map(([label,val])=><div key={label} style={{display:"flex",gap:6,alignItems:"flex-start",marginBottom:6}}><span style={{fontSize:11,fontWeight:700,color:"#90A4AE",width:44,flexShrink:0,paddingTop:2}}>{label}</span>{val}</div>)}</>
       )}
       {/* Notes & Links section */}
       {(proj.figmaUrl||proj.jiraUrl||proj.note||proj.blocker||onEditProject)&&(
@@ -812,6 +826,7 @@ function AddModal({team,onAdd,onAddBatch,onClose,role,lockedDesigner,prefill}) {
     jiraUrl:    (prefill&&prefill.jiraUrl)||"",
     note:       (prefill&&prefill.note)||"",
     blocker:    (prefill&&prefill.blocker)||"",
+    type:       (prefill&&prefill.type)||"",
   });
   const [leaveF,setLeaveF]=useState({designer:prefillDesigner,leaveType:"PTO",leaveStatus:"Planned",startDate:(prefill&&prefill.startDate)||"",endDate:""});
   const [leaveErr,setLeaveErr]=useState("");
@@ -890,40 +905,65 @@ function AddModal({team,onAdd,onAddBatch,onClose,role,lockedDesigner,prefill}) {
       let bestSheet=dataSheets.find(s=>/FY\d+H/i.test(s))||dataSheets.find(s=>/FY/i.test(s))||dataSheets[0];
       if(!bestSheet){setXlsxErr("No data sheet found.");setXlsxLoading(false);return;}
       const ws=wb.Sheets[bestSheet];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:false});
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true});
       let headerIdx=-1;
-      for(let i=0;i<Math.min(5,rows.length);i++){const r=rows[i].map(c=>String(c||"").toLowerCase());if(r.includes("project")||r.includes("start date")){headerIdx=i;break;}}
+      for(let i=0;i<Math.min(8,rows.length);i++){const r=rows[i].map(c=>String(c||"").toLowerCase());if(r.some(c=>c.includes("project")||c==="start date"||c==="start"||c.includes("name"))){headerIdx=i;break;}}
       if(headerIdx===-1){setXlsxErr("Could not find header row.");setXlsxLoading(false);return;}
       const headers=rows[headerIdx].map(c=>String(c||"").toLowerCase().trim());
-      const colIdx=names=>{for(const n of names){const i=headers.indexOf(n);if(i>=0)return i;}return -1;};
+      // Exact match first, then partial contains match
+      const colIdx=names=>{
+        for(const n of names){const i=headers.indexOf(n);if(i>=0)return i;}
+        for(const n of names){const i=headers.findIndex(h=>h.includes(n));if(i>=0)return i;}
+        return -1;
+      };
       const iStart=colIdx(["start date","est. design start","start"]);
       const iEnd=colIdx(["end date","est. design hand off","end"]);
-      const iProject=colIdx(["project","name","task"]);
-      const iDesigner=colIdx(["designer","assignee","owner"]);
+      // "project name" before "name" so "Project Name, Size*" takes priority over "Name*"
+      const iProject=colIdx(["project name","project","task"]);
+      // "name*"/"name" as fallback for designer (e.g. "Name*" column)
+      const iDesigner=colIdx(["designer","assignee","owner","name*","name"]);
+      const iSquad=colIdx(["squad*","squad","team"]);
       const iPM=colIdx(["pm","product manager"]);
       const iPhase=colIdx(["phase","status"]);
+      const iType=colIdx(["type*","type","category"]);
       const iEffort=colIdx(["effort","size","t-shirt"]);
-      if(iProject===-1){setXlsxErr("Could not find 'Project' column.");setXlsxLoading(false);return;}
+      if(iProject===-1){setXlsxErr("Could not find a project name column (expected 'Project', 'Project Name', or 'Task').");setXlsxLoading(false);return;}
+      // Parse dates: handles both Excel serial numbers (e.g. 46132) and string dates
+      const parseDate=v=>{
+        if(!v&&v!==0)return "";
+        const n=Number(v);
+        if(!isNaN(n)&&n>1000){
+          // Excel serial: days since Dec 30, 1899 (accounts for Excel's leap-year bug)
+          const d=new Date(Math.round((n-25569)*86400*1000));
+          return d.toISOString().slice(0,10);
+        }
+        const d=new Date(String(v));
+        if(!isNaN(d.getTime()))return d.toISOString().slice(0,10);
+        return "";
+      };
       const sizeMap={"xs":"XS","s":"S","m":"M","l":"L","xl":"XL","small":"S","medium":"M","large":"L"};
       const items=[];
       for(let i=headerIdx+1;i<rows.length;i++){
         const row=rows[i];
         const project=String(row[iProject]||"").trim();
-        const startRaw=iStart>=0?String(row[iStart]||"").trim():"";
+        const startRaw=iStart>=0?row[iStart]:"";
         if(!project||!startRaw)continue;
-        const parseDate=v=>{if(!v)return "";const d=new Date(v);if(!isNaN(d.getTime()))return d.toISOString().slice(0,10);return "";};
         const startDate=parseDate(startRaw);
-        const endDate=iEnd>=0?parseDate(String(row[iEnd]||"").trim()):"";
+        const endDate=iEnd>=0?parseDate(row[iEnd]):"";
         const designerRaw=iDesigner>=0?String(row[iDesigner]||"").trim():"";
-        const dm=team.designers.find(d=>designerRaw.toLowerCase().includes(d.toLowerCase()))||"";
+        const dm=team.designers.find(d=>designerRaw.toLowerCase().includes(d.toLowerCase()))||designerRaw||"";
+        const squadRaw=iSquad>=0?String(row[iSquad]||"").trim():"";
         const pmRaw=iPM>=0?String(row[iPM]||"").trim():"";
         const pmMatch=(team.pms||[]).find(p=>pmRaw.toLowerCase().includes(p.split(" ")[0].toLowerCase()))||"";
-        const pmValue=pmMatch||(pmRaw||""); // use matched name, or raw name (will be auto-added as new PM)
+        const pmValue=pmMatch||(pmRaw||"");
         const phaseRaw=iPhase>=0?String(row[iPhase]||"").trim():"";
-        const statusMatch=ALL_STATUSES.find(s=>s.toLowerCase()===phaseRaw.toLowerCase())||phaseRaw;
+        const statusMatch=ALL_STATUSES.find(s=>s.toLowerCase()===phaseRaw.toLowerCase())||"";
+        const typeRaw=iType>=0?String(row[iType]||"").trim():"";
+        const typeMatch=PROJECT_TYPES.find(t=>t.label.toLowerCase()===typeRaw.toLowerCase())?.label||
+          PROJECT_TYPES.find(t=>typeRaw.toLowerCase().includes(t.label.toLowerCase().split(" ")[0].toLowerCase()))?.label||typeRaw||"";
         const effortRaw=iEffort>=0?String(row[iEffort]||"m").toLowerCase().trim():"m";
         const size=sizeMap[effortRaw]||(SIZES.includes(effortRaw.toUpperCase())?effortRaw.toUpperCase():"M");
-        items.push({key:"",name:project,assignee:designerRaw,pmRaw,status:statusMatch,designer:dm,startDate,endDate,size,pms:pmValue?[pmValue]:[],selected:false,squad:""});
+        items.push({key:"",name:project,assignee:designerRaw,pmRaw,status:statusMatch,type:typeMatch,designer:dm,startDate,endDate,size,pms:pmValue?[pmValue]:[],selected:false,squad:squadRaw});
       }
       if(!items.length){setXlsxErr("No project rows found.");setXlsxLoading(false);return;}
       setBoardItems(items);setStep(3);
@@ -976,6 +1016,12 @@ function AddModal({team,onAdd,onAddBatch,onClose,role,lockedDesigner,prefill}) {
         {showCalc&&<div style={{marginTop:10}}><SizeCalculator initialScores={f.calcScores} onResult={(s,sc)=>{setF(p=>({...p,size:s,calcScores:sc}));setShowCalc(false);}} onClose={()=>setShowCalc(false)}/></div>}
       </div>
       <div><label style={lbl}>STATUS</label><CustomSelect value={f.status} onChange={v=>setField("status",v)} options={ALL_STATUSES} placeholder="Select status..."/></div>
+      <div>
+        <label style={lbl}>TYPE <span style={{fontWeight:400,color:"#B0BEC5"}}>(optional)</span></label>
+        <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+          {PROJECT_TYPES.map(t=>{const on=f.type===t.label;return<button key={t.label} type="button" onClick={()=>setField("type",on?"":t.label)} style={{padding:"4px 10px",borderRadius:20,fontSize:11,fontWeight:600,cursor:"pointer",border:`1px solid ${on?t.color+"66":"#ECEFF1"}`,background:on?t.bg:"#FAFAFA",color:on?t.color:"#607D8B",fontFamily:"'Inter',sans-serif",transition:"all 0.12s"}}>{t.label}</button>;})}
+        </div>
+      </div>
       {/* Links */}
       <div style={{display:"flex",gap:8}}>
         <div style={{flex:1}}>
@@ -1131,7 +1177,7 @@ function AddModal({team,onAdd,onAddBatch,onClose,role,lockedDesigner,prefill}) {
           {mode==="jira"&&step===3&&<ManualForm/>}
           {mode==="xlsx"&&step===1&&(
             <div style={{display:"flex",flexDirection:"column",gap:16}}>
-              <div style={{fontSize:12,color:"#607D8B",lineHeight:1.5}}>Upload a spreadsheet with columns like Start Date, End Date, Project, Designer, PM, Phase, Effort.</div>
+              <div style={{fontSize:12,color:"#607D8B",lineHeight:1.5}}>Supported column names:<br/><b>Project:</b> Project, Project Name, Task &nbsp;·&nbsp; <b>Designer:</b> Designer, Assignee, Owner, Name<br/><b>Dates:</b> Start Date, End Date &nbsp;·&nbsp; <b>Squad:</b> Squad &nbsp;·&nbsp; <b>Size:</b> Effort, Size &nbsp;·&nbsp; <b>PM:</b> PM</div>
               <div onClick={()=>xlsxRef.current?.click()} style={{border:"2px dashed #B0BEC5",borderRadius:10,padding:"32px 24px",textAlign:"center",cursor:"pointer",background:"#FAFAFA"}} onMouseEnter={e=>{e.currentTarget.style.borderColor="#2563EB";}} onMouseLeave={e=>{e.currentTarget.style.borderColor="#B0BEC5";}}>
                 <div style={{fontSize:14,fontWeight:700,color:"#0F172A",fontFamily:"'Inter',sans-serif",marginBottom:4}}>{xlsxLoading?"Reading file...":"Upload .xlsx file"}</div>
                 <div style={{fontSize:12,color:"#90A4AE"}}>Click to browse</div>
@@ -1151,18 +1197,26 @@ function AddModal({team,onAdd,onAddBatch,onClose,role,lockedDesigner,prefill}) {
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:12,fontFamily:"'Inter',sans-serif"}}>
                   <thead><tr style={{background:"#FAFAFA",borderBottom:"1px solid #ECEFF1"}}>
                     <th style={{padding:"8px 10px",width:32}}></th>
-                    <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#90A4AE",fontSize:11,minWidth:160}}>PROJECT</th>
-                    <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#90A4AE",fontSize:11,width:120}}>DESIGNER</th>
-                    <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#90A4AE",fontSize:11,width:130}}>PM</th>
-                    <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#90A4AE",fontSize:11,width:110}}>START</th>
-                    <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#90A4AE",fontSize:11,width:110}}>END</th>
-                    <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#90A4AE",fontSize:11,width:70}}>SIZE</th>
+                    <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#90A4AE",fontSize:11,minWidth:140}}>PROJECT</th>
+                    <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#90A4AE",fontSize:11,width:110}}>DESIGNER</th>
+                    <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#90A4AE",fontSize:11,width:110}}>SQUAD</th>
+                    <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#90A4AE",fontSize:11,width:110}}>PM</th>
+                    <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#90A4AE",fontSize:11,width:100}}>START</th>
+                    <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#90A4AE",fontSize:11,width:100}}>END</th>
+                    <th style={{padding:"8px 10px",textAlign:"left",fontWeight:700,color:"#90A4AE",fontSize:11,width:60}}>SIZE</th>
                   </tr></thead>
                   <tbody>{boardItems.map((it,idx)=>(
                     <tr key={idx} style={{borderBottom:"1px solid #F5F5F5",background:it.selected?"#F0F9FF":"#fff",opacity:it.selected?1:0.6}}>
                       <td style={{padding:"6px 10px",textAlign:"center"}}><input type="checkbox" checked={it.selected} onChange={()=>toggleItem(idx)} style={{cursor:"pointer"}}/></td>
                       <td style={{padding:"6px 10px"}}><div style={{fontSize:12,fontWeight:600,color:"#0F172A"}}>{it.name}</div></td>
-                      <td style={{padding:"4px 6px"}}><select value={it.designer} onChange={e=>updateItem(idx,"designer",e.target.value)} style={{width:"100%",padding:"4px 6px",borderRadius:5,border:"1px solid "+(it.selected&&!it.designer?"#FFCDD2":"#ECEFF1"),fontSize:11,background:it.selected&&!it.designer?"#FFEBEE":"#FAFAFA",fontFamily:"'Inter',sans-serif"}}><option value="">Select...</option>{team.designers.map(d=><option key={d} value={d}>{d}</option>)}</select></td>
+                      <td style={{padding:"4px 6px"}}>
+                        <select value={it.designer} onChange={e=>updateItem(idx,"designer",e.target.value)} style={{width:"100%",padding:"4px 6px",borderRadius:5,border:"1px solid "+(it.selected&&!it.designer?"#FFCDD2":"#ECEFF1"),fontSize:11,background:it.selected&&!it.designer?"#FFEBEE":"#FAFAFA",fontFamily:"'Inter',sans-serif"}}>
+                          <option value="">Select...</option>
+                          {[...(team.designers||[]),...(it.assignee&&!(team.designers||[]).some(d=>d.toLowerCase()===it.assignee.toLowerCase())?[it.assignee]:[])].map(d=><option key={d} value={d}>{d}</option>)}
+                        </select>
+                        {it.designer&&!(team.designers||[]).some(d=>d.toLowerCase()===it.designer.toLowerCase())&&<div style={{fontSize:9,color:"#E65100",marginTop:1}}>New designer — will be added</div>}
+                      </td>
+                      <td style={{padding:"4px 6px"}}><input value={it.squad||""} onChange={e=>updateItem(idx,"squad",e.target.value)} placeholder="Squad..." style={{width:"100%",padding:"4px 6px",borderRadius:5,border:"1px solid #ECEFF1",fontSize:11,background:"#FAFAFA",fontFamily:"'Inter',sans-serif",boxSizing:"border-box"}}/></td>
                       <td style={{padding:"4px 6px"}}>
                         <select value={it.pms[0]||""} onChange={e=>updateItem(idx,"pms",e.target.value?[e.target.value]:[])} style={{width:"100%",padding:"4px 6px",borderRadius:5,border:"1px solid #ECEFF1",fontSize:11,background:"#FAFAFA",fontFamily:"'Inter',sans-serif"}}>
                           <option value="">None</option>
@@ -1584,6 +1638,7 @@ function Drawer({drawer,setDrawer,drawerSearch,setDrawerSearch,drawerSort,setDra
                     {p.blocker&&<MI name="flag" size={13} style={{color:"#EF5350",flexShrink:0}}/>}
                     <div style={{fontSize:14,fontWeight:700,color:"#0F172A"}}>{p.name}</div>
                     {p.designer&&<span style={{fontSize:11,fontWeight:500,color:"#6B7280",background:"#F3F4F6",borderRadius:20,padding:"1px 8px",flexShrink:0}}>{p.designer}</span>}
+                    {p.type&&(()=>{const pt=PROJECT_TYPES.find(t=>t.label===p.type);return pt?<span style={{fontSize:10,fontWeight:600,padding:"1px 8px",borderRadius:20,background:pt.bg,color:pt.color,border:`1px solid ${pt.color}33`,flexShrink:0}}>{pt.label}</span>:null;})()}
                   </div>
                   {p.blocker&&(
                     <div style={{fontSize:12,color:"#C53030",lineHeight:1.5,marginBottom:8,padding:"6px 10px",borderRadius:6,background:"rgba(254,215,215,0.3)",border:"1px solid #FED7D7"}}>{p.blocker}</div>
@@ -1849,7 +1904,7 @@ export default function App() {
       ensureDesignerInSquads(squads, dn, teamSettings);
       for (const sq of squads) {
         const d = sq.designers.find(x => x.name === dn);
-        if (d) { d.projects = [...d.projects, { id:"p_"+Date.now()+"_"+Math.random().toString(36).slice(2), name:item.name, size:item.size||"M", startDate:item.startDate, endDate:item.endDate, squad:item.squad||"", pms:item.pms||[], status:item.status||"" }]; break; }
+        if (d) { d.projects = [...d.projects, { id:"p_"+Date.now()+"_"+Math.random().toString(36).slice(2), name:item.name, size:item.size||"M", startDate:item.startDate, endDate:item.endDate, squad:item.squad||"", pms:item.pms||[], status:item.status||"", type:item.type||"" }]; break; }
       }
     });
     ns.managers[effectiveManager] = { squads };
@@ -1862,11 +1917,22 @@ export default function App() {
         if (pm && !existingPms.includes(pm) && !newPms.includes(pm)) newPms.push(pm);
       });
     });
-    if (newPms.length) {
-      const base = teams[manager] || INIT_TEAMS[manager] || {};
-      await saveTeams({ ...teams, [manager]: { ...base, pms: [...existingPms, ...newPms] } });
+    // Auto-add any new designers found in imported items
+    const existingDesigners = teamSettings.designers || [];
+    const newDesigners = [];
+    items.forEach(item => {
+      if (item.designer && !existingDesigners.includes(item.designer) && !newDesigners.includes(item.designer)) newDesigners.push(item.designer);
+    });
+    const base = teams[manager] || INIT_TEAMS[manager] || {};
+    const updatedTeam = {
+      ...base,
+      ...(newPms.length ? { pms: [...existingPms, ...newPms] } : {}),
+      ...(newDesigners.length ? { designers: [...existingDesigners, ...newDesigners] } : {}),
+    };
+    if (newPms.length || newDesigners.length) {
+      await saveTeams({ ...teams, [manager]: updatedTeam });
     }
-    addToast(`${items.length} project${items.length !== 1 ? "s" : ""} added${newPms.length ? ` · ${newPms.length} new PM${newPms.length !== 1 ? "s" : ""} added` : ""}`);
+    addToast(`${items.length} project${items.length !== 1 ? "s" : ""} added${newDesigners.length ? ` · ${newDesigners.length} new designer${newDesigners.length !== 1 ? "s" : ""} added` : ""}${newPms.length ? ` · ${newPms.length} new PM${newPms.length !== 1 ? "s" : ""} added` : ""}`);
   }, [state, manager, teams, saveState, saveTeams]);
 
   // For VP: find which manager key owns a given project id
