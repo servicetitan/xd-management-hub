@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/agyulzatyan/.nvm/versions/**)",
+      "Bash(export PATH=\"/usr/local/bin:$PATH\")",
+      "mcp__Claude_Preview__preview_start",
+      "Read(//opt/homebrew/Cellar/node/23.11.0/bin/**)",
+      "Bash(ls ~/.nvm/versions/node/*/bin/node)",
+      "Bash(python3 -c \":*)",
+      "Bash(/usr/local/bin/node node_modules/.bin/vite build)",
+      "Bash(npm run:*)",
+      "Bash(curl -s http://localhost:5173/)",
+      "Bash(python3 -)",
+      "Bash(sort -k2 -n)",
+      "Bash(grep -oE '[0-9]+$')",
+      "Bash(node --input-type=module --eval ':*)",
+      "Bash(npx --yes acorn --ecma2020 --module src/App.jsx)",
+      "Bash(echo \"Exit: $?\")",
+      "Bash(npx acorn:*)",
+      "Bash(npx --yes @babel/parser --plugins jsx)",
+      "Bash(node -e ':*)",
+      "Bash(netlify deploy:*)",
+      "Bash(npx netlify-cli:*)"
+    ]
+  }
+}
