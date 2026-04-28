@@ -1793,16 +1793,23 @@ export default function App() {
     })();
   }, []);
 
-  // ---- Real-time Firebase listener ----
+  // ---- Real-time Firebase listeners ----
   useEffect(() => {
-    const unsub = subscribeToKey("xdh-state-v7", val => {
+    const unsubState = subscribeToKey("xdh-state-v7", val => {
       if (Date.now() - lastLocalChange.current < 5000) return;
       try {
         const f = JSON.parse(val);
         setState(p => JSON.stringify(p) !== JSON.stringify(f) ? f : p);
       } catch (e) {}
     });
-    return () => unsub();
+    const unsubTeams = subscribeToKey("xdh-teams-v34", val => {
+      if (Date.now() - lastLocalChange.current < 5000) return;
+      try {
+        const f = JSON.parse(val);
+        setTeams(p => JSON.stringify(p) !== JSON.stringify(f) ? f : p);
+      } catch (e) {}
+    });
+    return () => { unsubState(); unsubTeams(); };
   }, []);
 
   // ---- Helpers ----
