@@ -2013,6 +2013,15 @@ export default function App() {
     const newDesigners = (teamSettings.designers || []).filter(n => !existingNames.has(n));
     newDesigners.forEach(name => ensureDesignerInSquads(rawSquads, name, teamSettings));
 
+    // Remove designers that were deleted from the team list
+    const activeDesignerSet = new Set(teamSettings.designers || []);
+    const removedDesigners = [...existingNames].filter(n => !activeDesignerSet.has(n));
+    if (removedDesigners.length) {
+      rawSquads.forEach(sq => {
+        sq.designers = sq.designers.filter(d => activeDesignerSet.has(d.name));
+      });
+    }
+
     // Remove deleted squads, moving orphaned designers to the first remaining squad
     if (removedSquadIds.length) {
       const toRemove = rawSquads.filter(sq => removedSquadIds.includes(sq.id));
@@ -2026,11 +2035,11 @@ export default function App() {
         }
       }
       ns.managers[effectiveManager] = { squads: remaining };
-    } else if (newDesigners.length) {
+    } else if (newDesigners.length || removedDesigners.length) {
       ns.managers[effectiveManager] = { squads: rawSquads };
     }
 
-    if (removedSquadIds.length || newDesigners.length) await saveState(ns);
+    if (removedSquadIds.length || newDesigners.length || removedDesigners.length) await saveState(ns);
     addToast("Settings saved");
   }, [teams, manager, saveTeams, state, effectiveManager, saveState]);
 
