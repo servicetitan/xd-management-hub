@@ -1591,6 +1591,67 @@ function AnalyticsPage({state,teams,setDrawer,setManager,setPage}) {
   );
 }
 
+// ---------- MultiSelectPill ----------
+function MultiSelectPill({ label, options, selected, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, [open]);
+  const allSelected = !selected || selected.length === options.length;
+  const count = allSelected ? options.length : (selected ? selected.length : 0);
+  const isActive = !allSelected;
+  const toggle = opt => {
+    if (allSelected) {
+      onChange(options.filter(o => o !== opt));
+    } else {
+      const next = selected.includes(opt) ? selected.filter(o => o !== opt) : [...selected, opt];
+      onChange(next.length === options.length ? null : (next.length === 0 ? [] : next));
+    }
+  };
+  const toggleAll = () => { onChange(allSelected ? [] : null); };
+  return (
+    <div ref={ref} style={{ position:"relative", flexShrink:0 }}>
+      <button onClick={() => setOpen(o => !o)}
+        style={{ display:"flex", alignItems:"center", gap:6, height:34, padding:"0 14px", borderRadius:20, border:`1px solid ${isActive?"#2563EB":"#E0E0E0"}`, background:isActive?"#EEF4FD":"#fff", color:isActive?"#2563EB":"#546E7A", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"'Inter',sans-serif", transition:"all 0.15s" }}>
+        {label}
+        <span style={{ background:isActive?"#2563EB":"#E8EAED", color:isActive?"#fff":"#607D8B", borderRadius:10, fontSize:11, fontWeight:700, padding:"1px 6px", minWidth:18, textAlign:"center" }}>{count}</span>
+        <MI name={open?"expand_less":"expand_more"} size={16} style={{ display:"flex" }} />
+      </button>
+      {open && (
+        <div style={{ position:"absolute", top:"calc(100% + 6px)", left:0, background:"#fff", border:"1px solid #E8EAED", borderRadius:12, boxShadow:"0 8px 24px rgba(0,0,0,0.12)", zIndex:9999, minWidth:200, maxHeight:320, overflowY:"auto", padding:"6px 0" }}>
+          <div onClick={toggleAll}
+            onMouseEnter={e=>e.currentTarget.style.background="#FAFAFA"}
+            onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+            style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 14px", cursor:"pointer", fontSize:13, fontWeight:600, color:"#0F172A", borderBottom:"1px solid #F0F0F0", marginBottom:4, fontFamily:"'Inter',sans-serif" }}>
+            <div style={{ width:16, height:16, borderRadius:4, border:`2px solid ${allSelected?"#2563EB":"#CBD5E1"}`, background:allSelected?"#2563EB":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.1s" }}>
+              {allSelected && <MI name="check" size={11} style={{ color:"#fff", display:"flex" }} />}
+            </div>
+            Select All
+          </div>
+          {options.map(opt => {
+            const checked = allSelected || (selected && selected.includes(opt));
+            return (
+              <div key={opt} onClick={() => toggle(opt)}
+                onMouseEnter={e=>e.currentTarget.style.background="#FAFAFA"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+                style={{ display:"flex", alignItems:"center", gap:10, padding:"7px 14px", cursor:"pointer", fontSize:13, color:"#374151", fontFamily:"'Inter',sans-serif" }}>
+                <div style={{ width:16, height:16, borderRadius:4, border:`2px solid ${checked?"#2563EB":"#CBD5E1"}`, background:checked?"#2563EB":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.1s" }}>
+                  {checked && <MI name="check" size={11} style={{ color:"#fff", display:"flex" }} />}
+                </div>
+                {opt}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---------- Drawer ----------
 function Drawer({drawer,setDrawer,drawerSearch,setDrawerSearch,drawerSort,setDrawerSort,drawerManagers,setDrawerManagers}) {
   if(!drawer)return null;
@@ -1751,7 +1812,10 @@ export default function App() {
   const [teams, setTeams]       = useState(INIT_TEAMS);
   const [page, setPage]         = useState("timeline");
   const [manager, setManager]   = useState("Ashot");
-  const [vpFilter, setVpFilter] = useState([...MANAGERS, ...Object.values(SUB_MANAGERS).flat()].sort()[0]);
+  const [vpFilter, setVpFilter] = useState("all");
+  const [vpMgrFilter, setVpMgrFilter] = useState(null);  // null = all selected
+  const [vpSqFilter, setVpSqFilter]   = useState(null);
+  const [vpDsnFilter, setVpDsnFilter] = useState(null);
   const [filter, setFilter]     = useState([]);
   const [toasts, setToasts]     = useState([]);
   const [drawer, setDrawer]     = useState(null);
@@ -1766,6 +1830,13 @@ export default function App() {
   const [showSettings, setShowSettings] = useState(false);
   const [showOverload, setShowOverload] = useState(false);
   const lastLocalChange = useRef(0);
+
+  // Reset VP sub-filters when switching between "all" and a specific manager
+  useEffect(() => {
+    setVpMgrFilter(null);
+    setVpSqFilter(null);
+    setVpDsnFilter(null);
+  }, [vpFilter]);
 
   // Close manager dropdown on outside click
   useEffect(() => {
@@ -2073,11 +2144,36 @@ export default function App() {
 
   // VP: aggregate squads from all managers (or filter to one)
   const allManagerKeys = [...new Set(MANAGERS.flatMap(m => { const sbs=SUB_MANAGERS[m]||[]; return sbs.length?[m,...sbs]:[m]; }))];
-  const vpSquads = isVP ? resolvedSquads(vpFilter) : null;
+
+  // Annotated squads: each squad tagged with its owning manager key
+  const vpSquadsAnnotated = isVP && vpFilter === "all"
+    ? allManagerKeys.flatMap(k => resolvedSquads(k).map(sq => ({ ...sq, _manager: k })))
+    : null;
+
+  // Filter option lists for the VP multiselect bar
+  const vpAllManagers = allManagerKeys;
+  const vpAllSquads   = vpSquadsAnnotated ? [...new Set(vpSquadsAnnotated.map(sq => sq.name))] : [];
+  const vpAllDesigners= vpSquadsAnnotated ? [...new Set(vpSquadsAnnotated.flatMap(sq => sq.designers.map(d => d.name)))] : [];
+
+  const vpSquads = isVP
+    ? (vpFilter === "all"
+        ? (vpSquadsAnnotated
+            .filter(sq => !vpMgrFilter || vpMgrFilter.length === 0 || vpMgrFilter.includes(sq._manager))
+            .filter(sq => !vpSqFilter  || vpSqFilter.length  === 0 || vpSqFilter.includes(sq.name))
+            .map(sq => ({
+              ...sq,
+              designers: sq.designers.filter(d => !vpDsnFilter || vpDsnFilter.length === 0 || vpDsnFilter.includes(d.name))
+            }))
+            .filter(sq => sq.designers.length > 0))
+        : resolvedSquads(vpFilter))
+    : null;
   const displaySquads = vpSquads ?? currentSquads;
 
   // Team used by Timeline (drives filter chips + designer visibility)
-  const displayTeam = isVP ? getTeam(vpFilter) : currentTeam;
+  const allTeamDesigners = [...new Set(allManagerKeys.flatMap(k => getTeam(k).designers || []))];
+  const displayTeam = isVP
+    ? (vpFilter === "all" ? { designers: allTeamDesigners } : getTeam(vpFilter))
+    : currentTeam;
 
   const overloaded = allOverloaded(displaySquads);
   const managerOptions = MANAGERS.flatMap(m => [
@@ -2162,13 +2258,13 @@ export default function App() {
               <div onClick={() => !isDesigner && setManagerDropOpen(o => !o)}
                 style={{ display:"flex", alignItems:"center", gap:6, cursor: isDesigner ? "default" : "pointer", userSelect:"none" }}>
                 <span style={{ fontSize:16, fontWeight:700, color:"#0F172A", fontFamily:"'Inter',sans-serif", letterSpacing:"-0.01em" }}>
-                  {isVP ? vpFilter : manager}'s Team Timeline
+                  {isVP ? (vpFilter === "all" ? "XD Team Timeline" : `${vpFilter}'s Team Timeline`) : `${manager}'s Team Timeline`}
                 </span>
                 {!isDesigner && <MI name="expand_more" size={20} style={{ color:"#90A4AE", transform: managerDropOpen ? "rotate(180deg)" : "none", transition:"transform 0.15s", display:"flex" }} />}
               </div>
               {managerDropOpen && (
                 <div style={{ position:"absolute", top:"calc(100% + 8px)", left:0, background:"#fff", border:"1px solid #ECEFF1", borderRadius:12, boxShadow:"0 8px 24px rgba(0,0,0,0.12)", zIndex:9999, minWidth:220, overflow:"hidden" }}>
-                  {(isVP ? [...managerOptions].sort() : managerOptions).map(opt => {
+                  {(isVP ? [{ value:"all", label:"All Teams" }, ...managerOptions] : managerOptions).map(opt => {
                     const val = typeof opt === "string" ? opt : (opt.value || opt);
                     const lbl = typeof opt === "string" ? opt : (opt.label || opt);
                     const isSub = typeof opt !== "string" && opt.triggerLabel;
@@ -2205,6 +2301,36 @@ export default function App() {
               </button>
             )}
           </div>}
+          {page === "timeline" && isVP && vpFilter === "all" && vpAllManagers.length > 0 && (
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:16, flexWrap:"wrap" }}>
+              <span style={{ fontSize:12, fontWeight:600, color:"#90A4AE", letterSpacing:"0.04em", textTransform:"uppercase", marginRight:4 }}>Filter</span>
+              <MultiSelectPill
+                label="Managers"
+                options={vpAllManagers}
+                selected={vpMgrFilter}
+                onChange={setVpMgrFilter}
+              />
+              <MultiSelectPill
+                label="Squads"
+                options={vpAllSquads}
+                selected={vpSqFilter}
+                onChange={setVpSqFilter}
+              />
+              <MultiSelectPill
+                label="Designers"
+                options={vpAllDesigners}
+                selected={vpDsnFilter}
+                onChange={setVpDsnFilter}
+              />
+              {(vpMgrFilter || vpSqFilter || vpDsnFilter) && (
+                <button
+                  onClick={() => { setVpMgrFilter(null); setVpSqFilter(null); setVpDsnFilter(null); }}
+                  style={{ height:34, padding:"0 14px", borderRadius:20, border:"1px solid #ECEFF1", background:"transparent", color:"#90A4AE", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"'Inter',sans-serif" }}>
+                  Clear all
+                </button>
+              )}
+            </div>
+          )}
           {page === "timeline" && (
             <Timeline
               squads={displaySquads}
@@ -2216,7 +2342,7 @@ export default function App() {
               filter={isDesigner ? [user] : filter}
               onFilter={isDesigner ? () => {} : setFilter}
               team={displayTeam}
-              hideFilter={isDesigner}
+              hideFilter={isDesigner || (isVP && vpFilter === "all")}
               onUpdateTitle={isManager && !isVP && isOwnTeam ? handleUpdateTitle : undefined}
               onClickEmpty={isVP || !isOwnTeam ? undefined : (dn, iso) => {
                 setAddPrefill({ designer: isDesigner ? user : dn, startDate: iso });
