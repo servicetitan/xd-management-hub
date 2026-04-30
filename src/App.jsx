@@ -1594,16 +1594,26 @@ function AnalyticsPage({state,teams,setDrawer,setManager,setPage}) {
 // ---------- MultiSelectPill (MD3 Filter Chip + Menu) ----------
 function MultiSelectPill({ label, options, selected, onChange }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const searchRef = useRef(null);
   const ref = useRef(null);
   useEffect(() => {
-    if (!open) return;
+    if (!open) { setSearch(""); return; }
     const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, [open]);
+  // Focus search input when dropdown opens
+  useEffect(() => { if (open && searchRef.current) searchRef.current.focus(); }, [open]);
+
   const allSelected = !selected || selected.length === options.length;
   const count = allSelected ? options.length : (selected ? selected.length : 0);
   const isActive = !allSelected;
+  const visible = search.trim()
+    ? options.filter(o => o.toLowerCase().includes(search.toLowerCase()))
+    : options;
+  const visibleAllSelected = visible.length > 0 && visible.every(o => allSelected || (selected && selected.includes(o)));
+
   const toggle = opt => {
     if (allSelected) {
       onChange(options.filter(o => o !== opt));
@@ -1612,10 +1622,24 @@ function MultiSelectPill({ label, options, selected, onChange }) {
       onChange(next.length === options.length ? null : (next.length === 0 ? [] : next));
     }
   };
-  const toggleAll = () => { onChange(allSelected ? [] : null); };
+  const toggleAll = () => {
+    if (search.trim()) {
+      // "Select All" within search results only
+      if (visibleAllSelected) {
+        const next = (selected || options).filter(o => !visible.includes(o));
+        onChange(next.length === 0 ? [] : next);
+      } else {
+        const next = [...new Set([...(selected || options), ...visible])];
+        onChange(next.length === options.length ? null : next);
+      }
+    } else {
+      onChange(allSelected ? [] : null);
+    }
+  };
+
   return (
     <div ref={ref} style={{ position:"relative", flexShrink:0 }}>
-      {/* MD3 Filter Chip: 32dp height, 8dp corner radius, outline border when unselected */}
+      {/* MD3 Filter Chip: 32dp height, 8dp corner radius */}
       <button onClick={() => setOpen(o => !o)}
         style={{
           display:"flex", alignItems:"center", gap:4,
@@ -1627,51 +1651,71 @@ function MultiSelectPill({ label, options, selected, onChange }) {
           fontSize:14, fontWeight:500, cursor:"pointer",
           fontFamily:"'Inter',sans-serif", transition:"background 0.15s, border 0.15s",
         }}>
-        {/* Leading check — MD3 shows it only in selected state */}
         {isActive && <MI name="check" size={18} style={{ display:"flex", flexShrink:0 }} />}
         {label}
         {isActive && <span style={{ fontSize:13, fontWeight:600 }}>({count})</span>}
-        {/* Trailing dropdown arrow */}
         <MI name={open ? "arrow_drop_up" : "arrow_drop_down"} size={18} style={{ display:"flex", flexShrink:0 }} />
       </button>
 
       {open && (
-        /* MD3 Menu: 4dp corner radius, elevation-2 shadow, 8dp padding top/bottom */
         <div style={{
           position:"absolute", top:"calc(100% + 4px)", left:0,
           background:"#FFFBFE",
           borderRadius:4,
           boxShadow:"0 1px 2px rgba(0,0,0,0.30), 0 2px 6px 2px rgba(0,0,0,0.15)",
-          zIndex:9999, minWidth:220, maxHeight:320, overflowY:"auto",
-          padding:"8px 0",
+          zIndex:9999, minWidth:240, maxHeight:360, display:"flex", flexDirection:"column",
         }}>
-          {/* Select All — separated by a divider */}
-          <div onClick={toggleAll}
-            onMouseEnter={e => e.currentTarget.style.background = "rgba(37,99,235,0.08)"}
-            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-            style={{ display:"flex", alignItems:"center", gap:12, padding:"0 16px", height:48, cursor:"pointer", fontFamily:"'Inter',sans-serif" }}>
-            {/* MD3 checkbox: 18dp, 2dp corner radius */}
-            <div style={{ width:18, height:18, borderRadius:2, border:`2px solid ${allSelected?"#2563EB":"#49454F"}`, background:allSelected?"#2563EB":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.1s" }}>
-              {allSelected && <MI name="check" size={12} style={{ color:"#fff", display:"flex" }} />}
+          {/* Search input */}
+          <div style={{ padding:"8px 12px", borderBottom:"1px solid #E7E0EC", flexShrink:0 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:6, background:"#F3EFF4", borderRadius:4, padding:"6px 10px" }}>
+              <MI name="search" size={16} style={{ color:"#49454F", display:"flex", flexShrink:0 }} />
+              <input
+                ref={searchRef}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder={`Search ${label.toLowerCase()}…`}
+                style={{ border:"none", background:"transparent", outline:"none", fontSize:13, color:"#1C1B1F", fontFamily:"'Inter',sans-serif", width:"100%", minWidth:0 }}
+              />
+              {search && (
+                <span onClick={() => setSearch("")} style={{ cursor:"pointer", display:"flex", color:"#49454F", flexShrink:0 }}>
+                  <MI name="close" size={14} />
+                </span>
+              )}
             </div>
-            <span style={{ fontSize:14, fontWeight:600, color:"#1C1B1F" }}>Select All</span>
           </div>
-          {/* MD3 divider */}
-          <div style={{ height:1, background:"#CAC4D0", margin:"4px 0" }} />
-          {options.map(opt => {
-            const checked = allSelected || (selected && selected.includes(opt));
-            return (
-              <div key={opt} onClick={() => toggle(opt)}
-                onMouseEnter={e => e.currentTarget.style.background = "rgba(37,99,235,0.08)"}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                style={{ display:"flex", alignItems:"center", gap:12, padding:"0 16px", height:48, cursor:"pointer", fontFamily:"'Inter',sans-serif" }}>
-                <div style={{ width:18, height:18, borderRadius:2, border:`2px solid ${checked?"#2563EB":"#49454F"}`, background:checked?"#2563EB":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.1s" }}>
-                  {checked && <MI name="check" size={12} style={{ color:"#fff", display:"flex" }} />}
-                </div>
-                <span style={{ fontSize:14, color:"#1C1B1F" }}>{opt}</span>
+
+          {/* Scrollable list */}
+          <div style={{ overflowY:"auto", flex:1, maxHeight:280, padding:"4px 0" }}>
+            {/* Select All row */}
+            <div onClick={toggleAll}
+              onMouseEnter={e => e.currentTarget.style.background = "rgba(37,99,235,0.08)"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+              style={{ display:"flex", alignItems:"center", gap:12, padding:"0 16px", height:48, cursor:"pointer", fontFamily:"'Inter',sans-serif" }}>
+              <div style={{ width:18, height:18, borderRadius:2, border:`2px solid ${visibleAllSelected?"#2563EB":"#49454F"}`, background:visibleAllSelected?"#2563EB":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.1s" }}>
+                {visibleAllSelected && <MI name="check" size={12} style={{ color:"#fff", display:"flex" }} />}
               </div>
-            );
-          })}
+              <span style={{ fontSize:14, fontWeight:600, color:"#1C1B1F" }}>{search.trim() ? `All (${visible.length})` : "Select All"}</span>
+            </div>
+            {/* MD3 divider */}
+            <div style={{ height:1, background:"#CAC4D0", margin:"2px 0 4px" }} />
+            {visible.length === 0 && (
+              <div style={{ padding:"12px 16px", fontSize:13, color:"#90A4AE", fontFamily:"'Inter',sans-serif" }}>No results</div>
+            )}
+            {visible.map(opt => {
+              const checked = allSelected || (selected && selected.includes(opt));
+              return (
+                <div key={opt} onClick={() => toggle(opt)}
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(37,99,235,0.08)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  style={{ display:"flex", alignItems:"center", gap:12, padding:"0 16px", height:48, cursor:"pointer", fontFamily:"'Inter',sans-serif" }}>
+                  <div style={{ width:18, height:18, borderRadius:2, border:`2px solid ${checked?"#2563EB":"#49454F"}`, background:checked?"#2563EB":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.1s" }}>
+                    {checked && <MI name="check" size={12} style={{ color:"#fff", display:"flex" }} />}
+                  </div>
+                  <span style={{ fontSize:14, color:"#1C1B1F" }}>{opt}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -2356,16 +2400,16 @@ export default function App() {
                 onChange={setVpMgrFilter}
               />
               <MultiSelectPill
-                label="Squads"
-                options={vpAllSquads}
-                selected={vpSqFilter}
-                onChange={setVpSqFilter}
-              />
-              <MultiSelectPill
                 label="Designers"
                 options={vpAllDesigners}
                 selected={vpDsnFilter}
                 onChange={setVpDsnFilter}
+              />
+              <MultiSelectPill
+                label="Squads"
+                options={vpAllSquads}
+                selected={vpSqFilter}
+                onChange={setVpSqFilter}
               />
               {(vpMgrFilter || vpSqFilter || vpDsnFilter) && (
                 /* MD3 Text Button */
