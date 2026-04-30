@@ -2177,18 +2177,37 @@ export default function App() {
     : null;
 
   // Filter option lists for the VP multiselect bar
-  const vpAllManagers = allManagerKeys;
-  const vpAllSquads   = vpSquadsAnnotated ? [...new Set(vpSquadsAnnotated.map(sq => sq.name))] : [];
-  const vpAllDesigners= vpSquadsAnnotated ? [...new Set(vpSquadsAnnotated.flatMap(sq => sq.designers.map(d => d.name)))] : [];
+  const vpAllManagers  = allManagerKeys;
+  // Squad options = unique product-squad values from project.squad (not organizational container names)
+  const vpAllSquads    = vpSquadsAnnotated
+    ? [...new Set(
+        vpSquadsAnnotated
+          .flatMap(sq => sq.designers.flatMap(d => d.projects.map(p => p.squad).filter(Boolean)))
+      )].sort()
+    : [];
+  const vpAllDesigners = vpSquadsAnnotated
+    ? [...new Set(vpSquadsAnnotated.flatMap(sq => sq.designers.map(d => d.name)))]
+    : [];
 
   const vpSquads = isVP
     ? (vpFilter === "all"
         ? (vpSquadsAnnotated
+            // Manager filter: keep containers from selected managers
             .filter(sq => !vpMgrFilter || vpMgrFilter.length === 0 || vpMgrFilter.includes(sq._manager))
-            .filter(sq => !vpSqFilter  || vpSqFilter.length  === 0 || vpSqFilter.includes(sq.name))
             .map(sq => ({
               ...sq,
-              designers: sq.designers.filter(d => !vpDsnFilter || vpDsnFilter.length === 0 || vpDsnFilter.includes(d.name))
+              designers: sq.designers
+                // Designer filter
+                .filter(d => !vpDsnFilter || vpDsnFilter.length === 0 || vpDsnFilter.includes(d.name))
+                .map(d => {
+                  // Squad filter: narrow projects to those in selected product squads
+                  const filteredProjects = (!vpSqFilter || vpSqFilter.length === 0)
+                    ? d.projects
+                    : d.projects.filter(p => p.squad && vpSqFilter.includes(p.squad));
+                  return { ...d, projects: filteredProjects };
+                })
+                // When squad filter is active, hide designers with zero matching projects
+                .filter(d => !vpSqFilter || vpSqFilter.length === 0 || d.projects.length > 0),
             }))
             .filter(sq => sq.designers.length > 0))
         : resolvedSquads(vpFilter))
