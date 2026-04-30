@@ -1591,7 +1591,7 @@ function AnalyticsPage({state,teams,setDrawer,setManager,setPage}) {
   );
 }
 
-// ---------- MultiSelectPill ----------
+// ---------- MultiSelectPill (MD3 Filter Chip + Menu) ----------
 function MultiSelectPill({ label, options, selected, onChange }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -1615,34 +1615,60 @@ function MultiSelectPill({ label, options, selected, onChange }) {
   const toggleAll = () => { onChange(allSelected ? [] : null); };
   return (
     <div ref={ref} style={{ position:"relative", flexShrink:0 }}>
+      {/* MD3 Filter Chip: 32dp height, 8dp corner radius, outline border when unselected */}
       <button onClick={() => setOpen(o => !o)}
-        style={{ display:"flex", alignItems:"center", gap:6, height:34, padding:"0 14px", borderRadius:20, border:`1px solid ${isActive?"#2563EB":"#E0E0E0"}`, background:isActive?"#EEF4FD":"#fff", color:isActive?"#2563EB":"#546E7A", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"'Inter',sans-serif", transition:"all 0.15s" }}>
+        style={{
+          display:"flex", alignItems:"center", gap:4,
+          height:32, padding: isActive ? "0 12px 0 8px" : "0 12px",
+          borderRadius:8,
+          border: isActive ? "none" : "1px solid #79747E",
+          background: isActive ? "#EEF4FD" : "transparent",
+          color: isActive ? "#2563EB" : "#49454F",
+          fontSize:14, fontWeight:500, cursor:"pointer",
+          fontFamily:"'Inter',sans-serif", transition:"background 0.15s, border 0.15s",
+        }}>
+        {/* Leading check — MD3 shows it only in selected state */}
+        {isActive && <MI name="check" size={18} style={{ display:"flex", flexShrink:0 }} />}
         {label}
-        <span style={{ background:isActive?"#2563EB":"#E8EAED", color:isActive?"#fff":"#607D8B", borderRadius:10, fontSize:11, fontWeight:700, padding:"1px 6px", minWidth:18, textAlign:"center" }}>{count}</span>
-        <MI name={open?"expand_less":"expand_more"} size={16} style={{ display:"flex" }} />
+        {isActive && <span style={{ fontSize:13, fontWeight:600 }}>({count})</span>}
+        {/* Trailing dropdown arrow */}
+        <MI name={open ? "arrow_drop_up" : "arrow_drop_down"} size={18} style={{ display:"flex", flexShrink:0 }} />
       </button>
+
       {open && (
-        <div style={{ position:"absolute", top:"calc(100% + 6px)", left:0, background:"#fff", border:"1px solid #E8EAED", borderRadius:12, boxShadow:"0 8px 24px rgba(0,0,0,0.12)", zIndex:9999, minWidth:200, maxHeight:320, overflowY:"auto", padding:"6px 0" }}>
+        /* MD3 Menu: 4dp corner radius, elevation-2 shadow, 8dp padding top/bottom */
+        <div style={{
+          position:"absolute", top:"calc(100% + 4px)", left:0,
+          background:"#FFFBFE",
+          borderRadius:4,
+          boxShadow:"0 1px 2px rgba(0,0,0,0.30), 0 2px 6px 2px rgba(0,0,0,0.15)",
+          zIndex:9999, minWidth:220, maxHeight:320, overflowY:"auto",
+          padding:"8px 0",
+        }}>
+          {/* Select All — separated by a divider */}
           <div onClick={toggleAll}
-            onMouseEnter={e=>e.currentTarget.style.background="#FAFAFA"}
-            onMouseLeave={e=>e.currentTarget.style.background="transparent"}
-            style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 14px", cursor:"pointer", fontSize:13, fontWeight:600, color:"#0F172A", borderBottom:"1px solid #F0F0F0", marginBottom:4, fontFamily:"'Inter',sans-serif" }}>
-            <div style={{ width:16, height:16, borderRadius:4, border:`2px solid ${allSelected?"#2563EB":"#CBD5E1"}`, background:allSelected?"#2563EB":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.1s" }}>
-              {allSelected && <MI name="check" size={11} style={{ color:"#fff", display:"flex" }} />}
+            onMouseEnter={e => e.currentTarget.style.background = "rgba(37,99,235,0.08)"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            style={{ display:"flex", alignItems:"center", gap:12, padding:"0 16px", height:48, cursor:"pointer", fontFamily:"'Inter',sans-serif" }}>
+            {/* MD3 checkbox: 18dp, 2dp corner radius */}
+            <div style={{ width:18, height:18, borderRadius:2, border:`2px solid ${allSelected?"#2563EB":"#49454F"}`, background:allSelected?"#2563EB":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.1s" }}>
+              {allSelected && <MI name="check" size={12} style={{ color:"#fff", display:"flex" }} />}
             </div>
-            Select All
+            <span style={{ fontSize:14, fontWeight:600, color:"#1C1B1F" }}>Select All</span>
           </div>
+          {/* MD3 divider */}
+          <div style={{ height:1, background:"#CAC4D0", margin:"4px 0" }} />
           {options.map(opt => {
             const checked = allSelected || (selected && selected.includes(opt));
             return (
               <div key={opt} onClick={() => toggle(opt)}
-                onMouseEnter={e=>e.currentTarget.style.background="#FAFAFA"}
-                onMouseLeave={e=>e.currentTarget.style.background="transparent"}
-                style={{ display:"flex", alignItems:"center", gap:10, padding:"7px 14px", cursor:"pointer", fontSize:13, color:"#374151", fontFamily:"'Inter',sans-serif" }}>
-                <div style={{ width:16, height:16, borderRadius:4, border:`2px solid ${checked?"#2563EB":"#CBD5E1"}`, background:checked?"#2563EB":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.1s" }}>
-                  {checked && <MI name="check" size={11} style={{ color:"#fff", display:"flex" }} />}
+                onMouseEnter={e => e.currentTarget.style.background = "rgba(37,99,235,0.08)"}
+                onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                style={{ display:"flex", alignItems:"center", gap:12, padding:"0 16px", height:48, cursor:"pointer", fontFamily:"'Inter',sans-serif" }}>
+                <div style={{ width:18, height:18, borderRadius:2, border:`2px solid ${checked?"#2563EB":"#49454F"}`, background:checked?"#2563EB":"transparent", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, transition:"all 0.1s" }}>
+                  {checked && <MI name="check" size={12} style={{ color:"#fff", display:"flex" }} />}
                 </div>
-                {opt}
+                <span style={{ fontSize:14, color:"#1C1B1F" }}>{opt}</span>
               </div>
             );
           })}
@@ -2323,9 +2349,12 @@ export default function App() {
                 onChange={setVpDsnFilter}
               />
               {(vpMgrFilter || vpSqFilter || vpDsnFilter) && (
+                /* MD3 Text Button */
                 <button
                   onClick={() => { setVpMgrFilter(null); setVpSqFilter(null); setVpDsnFilter(null); }}
-                  style={{ height:34, padding:"0 14px", borderRadius:20, border:"1px solid #ECEFF1", background:"transparent", color:"#90A4AE", fontSize:13, fontWeight:500, cursor:"pointer", fontFamily:"'Inter',sans-serif" }}>
+                  onMouseEnter={e => e.currentTarget.style.background = "rgba(37,99,235,0.08)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                  style={{ height:32, padding:"0 12px", borderRadius:8, border:"none", background:"transparent", color:"#2563EB", fontSize:14, fontWeight:500, cursor:"pointer", fontFamily:"'Inter',sans-serif", transition:"background 0.15s" }}>
                   Clear all
                 </button>
               )}
