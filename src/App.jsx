@@ -1839,7 +1839,7 @@ function LoginScreen({ onLogin }) {
       <style>{"@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}"}</style>
       <div style={{ background:"#fff", borderRadius:28, padding:"48px 40px", boxShadow:"0 4px 24px rgba(0,0,0,0.10)", width:400, maxWidth:"90vw" }}>
         <div style={{ textAlign:"center", marginBottom:32 }}>
-          <img src="/XDlogo.svg" alt="XD Management Hub" style={{ width:88, height:88, objectFit:"contain", margin:"0 auto 16px", display:"block" }} />
+          <img src={`${import.meta.env.BASE_URL}XDlogo.svg`} alt="XD Management Hub" style={{ width:88, height:88, objectFit:"contain", margin:"0 auto 16px", display:"block" }} />
           <div style={{ fontSize:24, fontWeight:800, color:"#0F172A", marginBottom:6, letterSpacing:"-0.01em" }}>XD Management Hub</div>
           <div style={{ fontSize:14, color:"#90A4AE" }}>ServiceTitan Design Team</div>
         </div>
@@ -2281,7 +2281,7 @@ export default function App() {
 
   if (!appReady) return (
     <div style={{ height:"100vh", background:"#FAFAFA", fontFamily:"'Inter',sans-serif", display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:16 }}>
-      <img src="/XDlogo.svg" alt="" style={{ width:48, height:48, objectFit:"contain", opacity:0.8 }} />
+      <img src={`${import.meta.env.BASE_URL}XDlogo.svg`} alt="" style={{ width:48, height:48, objectFit:"contain", opacity:0.8 }} />
       <div style={{ width:32, height:32, border:"3px solid #E8EAED", borderTopColor:"#2563EB", borderRadius:"50%", animation:"spin 0.8s linear infinite" }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -2295,7 +2295,7 @@ export default function App() {
 
           {/* Logo */}
           <div style={{ padding:"20px 20px 0", display:"flex", alignItems:"center", gap:12, flexShrink:0 }}>
-            <img src="/XDlogo.svg" alt="" style={{ width:40, height:40, objectFit:"contain", flexShrink:0 }} />
+            <img src={`${import.meta.env.BASE_URL}XDlogo.svg`} alt="" style={{ width:40, height:40, objectFit:"contain", flexShrink:0 }} />
             <span style={{ fontSize:16, fontWeight:600, color:"#0F172A", letterSpacing:"-0.01em", lineHeight:1.25 }}>XD Management</span>
           </div>
 
