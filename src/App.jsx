@@ -1794,6 +1794,418 @@ function Drawer({drawer,setDrawer,drawerSearch,setDrawerSearch,drawerSort,setDra
 }
 
 
+// ---------- PeoplePage ----------
+const GT_TYPES = [
+  { id:"start",    label:"Start",    color:"#1565C0", bg:"#E3F2FD" },
+  { id:"stop",     label:"Stop",     color:"#C62828", bg:"#FFEBEE" },
+  { id:"continue", label:"Continue", color:"#2E7D32", bg:"#E8F5E9" },
+];
+
+function PeoplePage({ squads, manager, peopleData, onSavePeople, onToast }) {
+  const [tab, setTab] = useState("health");
+
+  const teamMembers = useMemo(() => {
+    const names = [];
+    squads.forEach(sq => (sq.designers||[]).forEach(d => { if(!names.includes(d.name)) names.push(d.name); }));
+    return names;
+  }, [squads]);
+
+  const allPeople = useMemo(() => [
+    { key:"_self", label:manager, isSelf:true },
+    ...teamMembers.map(n => ({ key:n, label:n, isSelf:false })),
+  ], [manager, teamMembers]);
+
+  const getActiveProjects = useCallback((name) => {
+    const today = new Date().toISOString().slice(0,10);
+    const out = [];
+    squads.forEach(sq => (sq.designers||[]).forEach(d => {
+      if(d.name===name) (d.projects||[]).forEach(p => {
+        if(p.type!=="leave" && p.status!=="Done" && (!p.endDate||p.endDate>=today)) out.push(p);
+      });
+    }));
+    return out;
+  }, [squads]);
+
+  const mgrData = useMemo(() => peopleData?.[manager] || {}, [peopleData, manager]);
+  const getPersonData = useCallback((key) => mgrData[key] || {}, [mgrData]);
+
+  const handleSavePerson = useCallback((key, data) => {
+    onSavePeople({ ...peopleData, [manager]: { ...mgrData, [key]: data } });
+  }, [peopleData, manager, mgrData, onSavePeople]);
+
+  return (
+    <div style={{ padding:24 }}>
+      <div style={{ marginBottom:24 }}>
+        <div style={{ fontSize:22, fontWeight:700, color:"#0F172A", letterSpacing:"-0.01em" }}>People</div>
+        <div style={{ fontSize:13, color:"#90A4AE", marginTop:2 }}>Health & growth tracking · {manager}'s team</div>
+      </div>
+      <div style={{ display:"flex", borderBottom:"1px solid #ECEFF1", marginBottom:24 }}>
+        {[{id:"health",label:"Health Dashboard"},{id:"growth",label:"Growth Tracker"}].map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)}
+            style={{ position:"relative", height:40, padding:"0 20px", border:"none", background:"transparent", color:tab===t.id?"#2563EB":"#607D8B", fontSize:14, fontWeight:tab===t.id?600:500, cursor:"pointer", fontFamily:"'Inter',sans-serif" }}>
+            {t.label}
+            {tab===t.id&&<span style={{ position:"absolute", bottom:0, left:0, right:0, height:3, background:"#2563EB", borderRadius:"3px 3px 0 0" }}/>}
+          </button>
+        ))}
+      </div>
+      {tab==="health" && (
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(270px, 1fr))", gap:16 }}>
+          {allPeople.map(p=>(
+            <PersonHealthCard key={p.key} name={p.label} isSelf={p.isSelf}
+              activeProjects={p.isSelf?[]:getActiveProjects(p.label)}
+              personData={getPersonData(p.key)}
+              onSave={data=>{handleSavePerson(p.key,data);onToast("Saved");}}
+              onSwitchToGrowth={()=>setTab("growth")}
+            />
+          ))}
+        </div>
+      )}
+      {tab==="growth" && (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {allPeople.map(p=>(
+            <GrowthTrackerRow key={p.key} name={p.label} isSelf={p.isSelf}
+              personData={getPersonData(p.key)}
+              onSave={data=>{handleSavePerson(p.key,data);onToast("Saved");}}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PersonHealthCard({ name, isSelf, activeProjects, personData, onSave, onSwitchToGrowth }) {
+  const [showSig, setShowSig] = useState(false);
+  const growthAreas = personData.growthAreas || [];
+  const signals = personData.signals || [];
+  const checkIns = personData.checkIns || [];
+  const next1on1 = personData.next1on1 || "";
+  const latestCi = checkIns.length ? checkIns[checkIns.length-1] : null;
+  const activeAreas = growthAreas.filter(a=>a.active!==false);
+  const primaryFocus = activeAreas[0] || null;
+  const today = new Date().toISOString().slice(0,10);
+  const pastDue = next1on1 && next1on1 < today;
+  const ACOLORS = ["#1565C0","#388E3C","#E65100","#4527A0","#AD1457","#0288D1","#C62828"];
+  const avatarColor = isSelf ? "#2563EB" : ACOLORS[name.length % ACOLORS.length];
+  const initials = name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+
+  return (
+    <div style={{ background:"#fff", borderRadius:16, padding:20, border:"1px solid #ECEFF1", display:"flex", flexDirection:"column", gap:12, boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+        <div style={{ width:44, height:44, borderRadius:"50%", background:avatarColor, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:14, fontWeight:700, flexShrink:0, letterSpacing:"0.03em" }}>{initials}</div>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:15, fontWeight:700, color:"#0F172A", display:"flex", alignItems:"center", gap:6 }}>
+            {name}
+            {isSelf&&<span style={{ fontSize:10, fontWeight:600, color:"#2563EB", background:"#EEF4FD", padding:"2px 6px", borderRadius:20 }}>you</span>}
+          </div>
+          {personData.title&&<div style={{ fontSize:12, color:"#90A4AE", marginTop:1 }}>{personData.title}</div>}
+        </div>
+      </div>
+
+      {!isSelf&&(
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+          <span style={{ fontSize:12, color:"#607D8B", background:"#F5F5F7", padding:"3px 10px", borderRadius:20 }}>{activeProjects.length} active project{activeProjects.length!==1?"s":""}</span>
+          {activeAreas.length>0&&<span style={{ fontSize:12, color:"#607D8B", background:"#F5F5F7", padding:"3px 10px", borderRadius:20 }}>{activeAreas.length} growth area{activeAreas.length!==1?"s":""}</span>}
+        </div>
+      )}
+
+      {primaryFocus ? (
+        <div>
+          <div style={{ fontSize:11, fontWeight:600, color:"#B0BEC5", letterSpacing:"0.06em", textTransform:"uppercase", marginBottom:4 }}>Growth Focus</div>
+          <div style={{ display:"flex", alignItems:"flex-start", gap:6 }}>
+            {(()=>{ const t=GT_TYPES.find(x=>x.id===primaryFocus.type)||GT_TYPES[0]; return <span style={{ fontSize:10, fontWeight:600, color:t.color, background:t.bg, padding:"2px 7px", borderRadius:20, flexShrink:0, marginTop:1 }}>{t.label}</span>; })()}
+            <span style={{ fontSize:13, color:"#374151", lineHeight:1.4 }}>{primaryFocus.text}</span>
+          </div>
+          {primaryFocus.quarter&&<div style={{ fontSize:11, color:"#B0BEC5", marginTop:3 }}>{primaryFocus.quarter}</div>}
+        </div>
+      ) : (
+        <div style={{ fontSize:13, color:"#D1D5DB", fontStyle:"italic" }}>No growth areas set</div>
+      )}
+
+      <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+          <MI name="rate_review" size={13} style={{ color:"#B0BEC5" }}/>
+          <span style={{ fontSize:12, color:"#607D8B" }}>
+            {latestCi
+              ? `${latestCi.quarter}${latestCi.rating?" · "+latestCi.rating.replace("Progressing Well","✓ PW").replace("Progressing Slower Than Expected","⚠ PSE"):""}`
+              : "No check-in recorded"}
+          </span>
+        </div>
+        <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+          <MI name="event" size={13} style={{ color:pastDue?"#C62828":"#B0BEC5" }}/>
+          <span style={{ fontSize:12, color:pastDue?"#C62828":"#607D8B" }}>
+            {next1on1?`Next 1:1: ${next1on1}${pastDue?" · overdue":""}`:"Next 1:1 not set"}
+          </span>
+        </div>
+        {signals.length>0&&(
+          <div style={{ display:"flex", alignItems:"center", gap:7 }}>
+            <MI name="fiber_manual_record" size={13} style={{ color:"#B0BEC5" }}/>
+            <span style={{ fontSize:12, color:"#607D8B" }}>{signals.length} signal{signals.length!==1?"s":""} · last {[...signals].sort((a,b)=>a.date>b.date?-1:1)[0].date}</span>
+          </div>
+        )}
+      </div>
+
+      <div style={{ display:"flex", gap:8, marginTop:4 }}>
+        <button onClick={()=>setShowSig(true)} style={{ flex:1, height:32, border:"1px solid #E2E8F0", borderRadius:8, background:"#fff", color:"#374151", fontSize:12, fontWeight:500, cursor:"pointer", fontFamily:"'Inter',sans-serif", display:"flex", alignItems:"center", justifyContent:"center", gap:4 }}>
+          <MI name="add" size={13}/>Signal
+        </button>
+        <button onClick={onSwitchToGrowth} style={{ flex:1, height:32, border:"1px solid #E2E8F0", borderRadius:8, background:"#fff", color:"#2563EB", fontSize:12, fontWeight:500, cursor:"pointer", fontFamily:"'Inter',sans-serif" }}>
+          Growth →
+        </button>
+      </div>
+
+      {showSig&&<LogSignalModal name={name} growthAreas={growthAreas}
+        onSave={sig=>{onSave({...personData,signals:[...(personData.signals||[]),sig]});setShowSig(false);}}
+        onClose={()=>setShowSig(false)}/>}
+    </div>
+  );
+}
+
+function GrowthTrackerRow({ name, isSelf, personData, onSave }) {
+  const [open, setOpen] = useState(false);
+  const [showAreaModal, setShowAreaModal] = useState(false);
+  const [editArea, setEditArea] = useState(null);
+  const [showSig, setShowSig] = useState(false);
+  const [editMeta, setEditMeta] = useState(false);
+
+  const growthAreas = personData.growthAreas || [];
+  const signals = personData.signals || [];
+  const checkIns = personData.checkIns || [];
+  const next1on1 = personData.next1on1 || "";
+  const activeAreas = growthAreas.filter(a=>a.active!==false);
+
+  const ACOLORS = ["#1565C0","#388E3C","#E65100","#4527A0","#AD1457","#0288D1","#C62828"];
+  const avatarColor = isSelf ? "#2563EB" : ACOLORS[name.length % ACOLORS.length];
+  const initials = name.split(" ").map(w=>w[0]).join("").slice(0,2).toUpperCase();
+
+  return (
+    <div style={{ background:"#fff", borderRadius:16, border:"1px solid #ECEFF1", overflow:"hidden", boxShadow:"0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div onClick={()=>setOpen(o=>!o)} style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 20px", cursor:"pointer" }}
+        onMouseEnter={e=>e.currentTarget.style.background="#FAFAFA"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+        <div style={{ width:36, height:36, borderRadius:"50%", background:avatarColor, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, flexShrink:0, letterSpacing:"0.03em" }}>{initials}</div>
+        <div style={{ flex:1, display:"flex", alignItems:"center", gap:8, minWidth:0 }}>
+          <span style={{ fontSize:14, fontWeight:600, color:"#0F172A" }}>{name}</span>
+          {isSelf&&<span style={{ fontSize:10, fontWeight:600, color:"#2563EB", background:"#EEF4FD", padding:"2px 6px", borderRadius:20 }}>you</span>}
+          {activeAreas.length>0&&<span style={{ fontSize:12, color:"#607D8B", background:"#F5F5F7", padding:"2px 8px", borderRadius:20 }}>{activeAreas.length} area{activeAreas.length!==1?"s":""}</span>}
+          {signals.length>0&&<span style={{ fontSize:12, color:"#607D8B", background:"#F5F5F7", padding:"2px 8px", borderRadius:20 }}>{signals.length} signal{signals.length!==1?"s":""}</span>}
+        </div>
+        {!open&&activeAreas[0]&&<div style={{ maxWidth:240, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", fontSize:12, color:"#90A4AE" }}>{activeAreas[0].text}</div>}
+        <MI name={open?"expand_less":"expand_more"} size={18} style={{ color:"#90A4AE", flexShrink:0 }}/>
+      </div>
+
+      {open&&(
+        <div style={{ borderTop:"1px solid #ECEFF1", padding:20 }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:24, marginBottom:20 }}>
+
+            {/* Growth Areas */}
+            <div>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+                <span style={{ fontSize:11, fontWeight:700, color:"#0F172A", letterSpacing:"0.06em", textTransform:"uppercase" }}>Growth Areas</span>
+                <button onClick={()=>{setEditArea(null);setShowAreaModal(true);}} style={{ display:"flex", alignItems:"center", gap:3, height:26, padding:"0 10px", border:"1px solid #E2E8F0", borderRadius:7, background:"#fff", color:"#374151", fontSize:12, fontWeight:500, cursor:"pointer" }}><MI name="add" size={12}/>Add</button>
+              </div>
+              {growthAreas.length===0 ? <div style={{ fontSize:13, color:"#D1D5DB", fontStyle:"italic" }}>No growth areas yet</div> : (
+                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                  {growthAreas.map(area=>{
+                    const t=GT_TYPES.find(x=>x.id===area.type)||GT_TYPES[0];
+                    return (
+                      <div key={area.id} style={{ padding:"10px 12px", borderRadius:10, background:area.active===false?"#F9FAFB":"#FAFEFF", border:"1px solid #E2E8F0", opacity:area.active===false?0.55:1 }}>
+                        <div style={{ display:"flex", alignItems:"flex-start", gap:7 }}>
+                          <span style={{ fontSize:10, fontWeight:600, color:t.color, background:t.bg, padding:"2px 7px", borderRadius:20, flexShrink:0, marginTop:1 }}>{t.label}</span>
+                          <span style={{ fontSize:13, color:"#374151", flex:1, lineHeight:1.4 }}>{area.text}</span>
+                          <div style={{ display:"flex", gap:2, flexShrink:0 }}>
+                            <button onClick={()=>{setEditArea(area);setShowAreaModal(true);}} title="Edit" style={{ background:"none", border:"none", cursor:"pointer", padding:3, color:"#B0BEC5", display:"flex" }}><MI name="edit" size={12}/></button>
+                            <button onClick={()=>onSave({...personData,growthAreas:growthAreas.map(a=>a.id===area.id?{...a,active:a.active===false?true:false}:a)})} title={area.active===false?"Activate":"Archive"} style={{ background:"none", border:"none", cursor:"pointer", padding:3, color:"#B0BEC5", display:"flex" }}><MI name={area.active===false?"visibility":"archive"} size={12}/></button>
+                            <button onClick={()=>onSave({...personData,growthAreas:growthAreas.filter(a=>a.id!==area.id)})} title="Delete" style={{ background:"none", border:"none", cursor:"pointer", padding:3, color:"#B0BEC5", display:"flex" }}><MI name="close" size={12}/></button>
+                          </div>
+                        </div>
+                        {area.quarter&&<div style={{ fontSize:11, color:"#B0BEC5", marginTop:3 }}>{area.quarter}{area.active===false?" · archived":""}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Signals */}
+            <div>
+              <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:12 }}>
+                <span style={{ fontSize:11, fontWeight:700, color:"#0F172A", letterSpacing:"0.06em", textTransform:"uppercase" }}>Signals</span>
+                <button onClick={()=>setShowSig(true)} style={{ display:"flex", alignItems:"center", gap:3, height:26, padding:"0 10px", border:"1px solid #E2E8F0", borderRadius:7, background:"#fff", color:"#374151", fontSize:12, fontWeight:500, cursor:"pointer" }}><MI name="add" size={12}/>Log</button>
+              </div>
+              {signals.length===0 ? <div style={{ fontSize:13, color:"#D1D5DB", fontStyle:"italic" }}>No signals logged yet</div> : (
+                <div style={{ display:"flex", flexDirection:"column", gap:6 }}>
+                  {[...signals].sort((a,b)=>a.date>b.date?-1:1).map(sig=>{
+                    const linked=sig.linkedAreaId?growthAreas.find(a=>a.id===sig.linkedAreaId):null;
+                    return (
+                      <div key={sig.id} style={{ padding:"10px 12px", borderRadius:10, background:"#F9FAFB", border:"1px solid #E2E8F0" }}>
+                        <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", gap:8 }}>
+                          <div style={{ flex:1 }}>
+                            <div style={{ fontSize:11, color:"#90A4AE", marginBottom:3 }}>{sig.date}</div>
+                            <div style={{ fontSize:13, color:"#374151", lineHeight:1.4 }}>{sig.text}</div>
+                            {linked&&<div style={{ fontSize:11, color:"#2563EB", marginTop:4 }}>↳ {linked.text.slice(0,50)}{linked.text.length>50?"…":""}</div>}
+                          </div>
+                          <button onClick={()=>onSave({...personData,signals:signals.filter(s=>s.id!==sig.id)})} style={{ background:"none", border:"none", cursor:"pointer", padding:3, color:"#D1D5DB", display:"flex", flexShrink:0 }}><MI name="close" size={12}/></button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Meta row */}
+          <div style={{ paddingTop:16, borderTop:"1px solid #F5F5F7" }}>
+            {!editMeta ? (
+              <div style={{ display:"flex", alignItems:"center", gap:16, flexWrap:"wrap" }}>
+                <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, color:"#607D8B" }}>
+                  <MI name="rate_review" size={13} style={{ color:"#B0BEC5" }}/>
+                  {checkIns.length>0
+                    ? `Last check-in: ${checkIns[checkIns.length-1].quarter}${checkIns[checkIns.length-1].rating?" · "+checkIns[checkIns.length-1].rating.replace("Progressing Slower Than Expected","PSE"):""}`
+                    : "No check-in recorded"}
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, color:"#607D8B" }}>
+                  <MI name="event" size={13} style={{ color:"#B0BEC5" }}/>
+                  {next1on1?`Next 1:1: ${next1on1}`:"Next 1:1 not set"}
+                </div>
+                {personData.title&&<div style={{ display:"flex", alignItems:"center", gap:6, fontSize:12, color:"#607D8B" }}>
+                  <MI name="badge" size={13} style={{ color:"#B0BEC5" }}/>{personData.title}
+                </div>}
+                <button onClick={()=>setEditMeta(true)} style={{ display:"flex", alignItems:"center", gap:3, height:26, padding:"0 10px", border:"1px solid #E2E8F0", borderRadius:7, background:"#fff", color:"#374151", fontSize:12, fontWeight:500, cursor:"pointer" }}>
+                  <MI name="edit" size={12}/>Edit
+                </button>
+              </div>
+            ) : (
+              <PersonMetaInline data={personData} onSave={d=>{onSave(d);setEditMeta(false);}} onCancel={()=>setEditMeta(false)}/>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showAreaModal&&<GrowthAreaModal area={editArea} onSave={area=>{
+        const existing=growthAreas.find(a=>a.id===area.id);
+        onSave({...personData,growthAreas:existing?growthAreas.map(a=>a.id===area.id?area:a):[...growthAreas,area]});
+        setShowAreaModal(false);setEditArea(null);
+      }} onClose={()=>{setShowAreaModal(false);setEditArea(null);}}/>}
+      {showSig&&<LogSignalModal name={name} growthAreas={growthAreas}
+        onSave={sig=>{onSave({...personData,signals:[...signals,sig]});setShowSig(false);}}
+        onClose={()=>setShowSig(false)}/>}
+    </div>
+  );
+}
+
+function PersonMetaInline({ data, onSave, onCancel }) {
+  const checkIns = data.checkIns||[];
+  const latest = checkIns.length?checkIns[checkIns.length-1]:{quarter:"",date:"",rating:""};
+  const [ciQ,setCiQ]=useState(latest.quarter||"");
+  const [ciD,setCiD]=useState(latest.date||"");
+  const [ciR,setCiR]=useState(latest.rating||"");
+  const [n1,setN1]=useState(data.next1on1||"");
+  const [title,setTitle]=useState(data.title||"");
+  const inp={height:32,padding:"0 10px",border:"1px solid #E2E8F0",borderRadius:8,fontSize:13,fontFamily:"'Inter',sans-serif",color:"#0F172A",outline:"none",background:"#fff"};
+  const handleSave=()=>{
+    const updatedCi=ciQ?[...checkIns.filter(c=>c.quarter!==ciQ),{quarter:ciQ,date:ciD,rating:ciR}].sort((a,b)=>a.quarter>b.quarter?1:-1):checkIns;
+    onSave({...data,checkIns:updatedCi,next1on1:n1,title});
+  };
+  return (
+    <div style={{ display:"flex", flexWrap:"wrap", gap:10, alignItems:"flex-end" }}>
+      <div><div style={{ fontSize:11,color:"#90A4AE",marginBottom:3 }}>Title</div><input value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Staff Designer" style={{...inp,width:170}}/></div>
+      <div><div style={{ fontSize:11,color:"#90A4AE",marginBottom:3 }}>Quarter</div>
+        <select value={ciQ} onChange={e=>setCiQ(e.target.value)} style={{...inp,width:120,cursor:"pointer"}}>
+          <option value="">—</option>
+          {["Q1 2026","Q2 2026","Q3 2026","Q4 2026","Q1 2027"].map(q=><option key={q}>{q}</option>)}
+        </select>
+      </div>
+      <div><div style={{ fontSize:11,color:"#90A4AE",marginBottom:3 }}>Check-in date</div><input type="date" value={ciD} onChange={e=>setCiD(e.target.value)} style={{...inp,width:140}}/></div>
+      <div><div style={{ fontSize:11,color:"#90A4AE",marginBottom:3 }}>Rating</div>
+        <select value={ciR} onChange={e=>setCiR(e.target.value)} style={{...inp,width:210,cursor:"pointer"}}>
+          <option value="">—</option>
+          <option>Progressing Well</option>
+          <option>Progressing Slower Than Expected</option>
+        </select>
+      </div>
+      <div><div style={{ fontSize:11,color:"#90A4AE",marginBottom:3 }}>Next 1:1</div><input type="date" value={n1} onChange={e=>setN1(e.target.value)} style={{...inp,width:140}}/></div>
+      <button onClick={handleSave} style={{ height:32,padding:"0 14px",border:"none",borderRadius:8,background:"#2563EB",color:"#fff",fontSize:12,fontWeight:500,cursor:"pointer" }}>Save</button>
+      <button onClick={onCancel} style={{ height:32,padding:"0 14px",border:"1px solid #E2E8F0",borderRadius:8,background:"#fff",color:"#374151",fontSize:12,fontWeight:500,cursor:"pointer" }}>Cancel</button>
+    </div>
+  );
+}
+
+function GrowthAreaModal({ area, onSave, onClose }) {
+  const [type,setType]=useState(area?.type||"continue");
+  const [text,setText]=useState(area?.text||"");
+  const [quarter,setQuarter]=useState(area?.quarter||"Q2 2026");
+  return (
+    <div onClick={onClose} style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.3)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center" }}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:"#fff",borderRadius:16,padding:24,width:460,boxShadow:"0 8px 32px rgba(0,0,0,0.15)" }}>
+        <div style={{ fontSize:16,fontWeight:700,color:"#0F172A",marginBottom:20 }}>{area?"Edit Growth Area":"Add Growth Area"}</div>
+        <div style={{ marginBottom:14 }}>
+          <div style={{ fontSize:12,fontWeight:500,color:"#374151",marginBottom:6 }}>Type</div>
+          <div style={{ display:"flex",gap:8 }}>
+            {GT_TYPES.map(t=>(
+              <button key={t.id} onClick={()=>setType(t.id)} style={{ flex:1,height:36,border:`2px solid ${type===t.id?t.color:"#E2E8F0"}`,borderRadius:8,background:type===t.id?t.bg:"#fff",color:type===t.id?t.color:"#607D8B",fontSize:13,fontWeight:600,cursor:"pointer" }}>{t.label}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{ marginBottom:14 }}>
+          <div style={{ fontSize:12,fontWeight:500,color:"#374151",marginBottom:6 }}>Focus area</div>
+          <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="Describe the growth focus..." rows={3}
+            style={{ width:"100%",padding:"10px 12px",border:"1px solid #E2E8F0",borderRadius:8,fontSize:13,fontFamily:"'Inter',sans-serif",color:"#0F172A",outline:"none",resize:"vertical",boxSizing:"border-box" }}/>
+        </div>
+        <div style={{ marginBottom:20 }}>
+          <div style={{ fontSize:12,fontWeight:500,color:"#374151",marginBottom:6 }}>Quarter</div>
+          <select value={quarter} onChange={e=>setQuarter(e.target.value)} style={{ height:36,padding:"0 10px",border:"1px solid #E2E8F0",borderRadius:8,fontSize:13,fontFamily:"'Inter',sans-serif",color:"#0F172A",outline:"none",background:"#fff",cursor:"pointer" }}>
+            {["Q1 2026","Q2 2026","Q3 2026","Q4 2026","Q1 2027"].map(q=><option key={q}>{q}</option>)}
+          </select>
+        </div>
+        <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
+          <button onClick={onClose} style={{ height:36,padding:"0 16px",border:"1px solid #E2E8F0",borderRadius:8,background:"#fff",color:"#374151",fontSize:14,fontWeight:500,cursor:"pointer" }}>Cancel</button>
+          <button onClick={()=>{if(!text.trim())return;onSave({id:area?.id||"ga_"+Date.now(),type,text:text.trim(),quarter,active:area?.active!==false});}} disabled={!text.trim()}
+            style={{ height:36,padding:"0 20px",border:"none",borderRadius:8,background:text.trim()?"#2563EB":"#B0BEC5",color:"#fff",fontSize:14,fontWeight:500,cursor:text.trim()?"pointer":"default" }}>Save</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LogSignalModal({ name, growthAreas, onSave, onClose }) {
+  const [text,setText]=useState("");
+  const [date,setDate]=useState(new Date().toISOString().slice(0,10));
+  const [linkedAreaId,setLinkedAreaId]=useState("");
+  const activeAreas=(growthAreas||[]).filter(a=>a.active!==false);
+  return (
+    <div onClick={onClose} style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.3)",zIndex:9999,display:"flex",alignItems:"center",justifyContent:"center" }}>
+      <div onClick={e=>e.stopPropagation()} style={{ background:"#fff",borderRadius:16,padding:24,width:440,boxShadow:"0 8px 32px rgba(0,0,0,0.15)" }}>
+        <div style={{ fontSize:16,fontWeight:700,color:"#0F172A",marginBottom:4 }}>Log Signal</div>
+        <div style={{ fontSize:13,color:"#90A4AE",marginBottom:20 }}>for {name}</div>
+        <div style={{ marginBottom:14 }}>
+          <div style={{ fontSize:12,fontWeight:500,color:"#374151",marginBottom:6 }}>Date</div>
+          <input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{ height:36,padding:"0 10px",border:"1px solid #E2E8F0",borderRadius:8,fontSize:13,fontFamily:"'Inter',sans-serif",color:"#0F172A",outline:"none" }}/>
+        </div>
+        <div style={{ marginBottom:14 }}>
+          <div style={{ fontSize:12,fontWeight:500,color:"#374151",marginBottom:6 }}>What did you observe?</div>
+          <textarea value={text} onChange={e=>setText(e.target.value)} placeholder="e.g. Proactively shared Figma screens before being asked..." rows={3}
+            style={{ width:"100%",padding:"10px 12px",border:"1px solid #E2E8F0",borderRadius:8,fontSize:13,fontFamily:"'Inter',sans-serif",color:"#0F172A",outline:"none",resize:"vertical",boxSizing:"border-box" }}/>
+        </div>
+        {activeAreas.length>0&&(
+          <div style={{ marginBottom:20 }}>
+            <div style={{ fontSize:12,fontWeight:500,color:"#374151",marginBottom:6 }}>Link to growth area (optional)</div>
+            <select value={linkedAreaId} onChange={e=>setLinkedAreaId(e.target.value)} style={{ width:"100%",height:36,padding:"0 10px",border:"1px solid #E2E8F0",borderRadius:8,fontSize:13,fontFamily:"'Inter',sans-serif",color:"#0F172A",outline:"none",background:"#fff",cursor:"pointer" }}>
+              <option value="">No link</option>
+              {activeAreas.map(a=><option key={a.id} value={a.id}>{a.text.slice(0,60)}{a.text.length>60?"…":""}</option>)}
+            </select>
+          </div>
+        )}
+        <div style={{ display:"flex",gap:10,justifyContent:"flex-end" }}>
+          <button onClick={onClose} style={{ height:36,padding:"0 16px",border:"1px solid #E2E8F0",borderRadius:8,background:"#fff",color:"#374151",fontSize:14,fontWeight:500,cursor:"pointer" }}>Cancel</button>
+          <button onClick={()=>{if(!text.trim())return;onSave({id:"sig_"+Date.now(),date,text:text.trim(),linkedAreaId:linkedAreaId||null});}} disabled={!text.trim()}
+            style={{ height:36,padding:"0 20px",border:"none",borderRadius:8,background:text.trim()?"#2563EB":"#B0BEC5",color:"#fff",fontSize:14,fontWeight:500,cursor:text.trim()?"pointer":"default" }}>Log Signal</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ---------- INIT_TEAMS ----------
 const INIT_TEAMS = {
   Ashot:     { designers: MANAGER_DESIGNERS.Ashot,     squads: DEF_SQUADS, pms: DEF_PMS },
@@ -1880,6 +2292,7 @@ export default function App() {
   const [loginRole, setLoginRole] = useState(null); // "Manager" | "Designer"
   const [state, setState]       = useState(INITIAL_STATE);
   const [teams, setTeams]       = useState(INIT_TEAMS);
+  const [people, setPeople]     = useState({});
   const [page, setPage]         = useState("timeline");
   const [manager, setManager]   = useState("Ashot");
   const [vpFilter, setVpFilter] = useState("all");
@@ -1930,6 +2343,8 @@ export default function App() {
       if (sr) try { setState(JSON.parse(sr.value)); } catch (e) {}
       const tr = await storage.get("xdh-teams-v34", true);
       if (tr) try { setTeams(JSON.parse(tr.value)); } catch (e) {}
+      const pr = await storage.get("xdh-people-v1", true);
+      if (pr) try { setPeople(JSON.parse(pr.value)); } catch (e) {}
       setAppReady(true);
     })();
   }, []);
@@ -1950,7 +2365,13 @@ export default function App() {
         setTeams(p => JSON.stringify(p) !== JSON.stringify(f) ? f : p);
       } catch (e) {}
     });
-    return () => { unsubState(); unsubTeams(); };
+    const unsubPeople = subscribeToKey("xdh-people-v1", val => {
+      try {
+        const f = JSON.parse(val);
+        setPeople(p => JSON.stringify(p) !== JSON.stringify(f) ? f : p);
+      } catch (e) {}
+    });
+    return () => { unsubState(); unsubTeams(); unsubPeople(); };
   }, []);
 
   // ---- Helpers ----
@@ -1963,6 +2384,11 @@ export default function App() {
   const saveTeams = useCallback(async nt => {
     setTeams(nt);
     await storage.set("xdh-teams-v34", JSON.stringify(nt), true);
+  }, []);
+
+  const savePeople = useCallback(async np => {
+    setPeople(np);
+    await storage.set("xdh-people-v1", JSON.stringify(np), true);
   }, []);
 
   const addToast = (msg, type = "success") => {
@@ -2276,6 +2702,7 @@ export default function App() {
     ? [
         { id:"timeline",  label:"Timeline",  icon:<MI name="calendar_today" size={18} /> },
         { id:"analytics", label:"Analytics", icon:<MI name="bar_chart" size={18} /> },
+        { id:"people",    label:"People",    icon:<MI name="group" size={18} /> },
       ]
     : [];
 
@@ -2341,7 +2768,7 @@ export default function App() {
         <div style={{ flex:1, display:"flex", flexDirection:"column", minWidth:0, overflow:"hidden" }}>
 
         {/* Content */}
-        <div style={{ padding:page==="analytics"?0:24, flex:1, overflowY:"auto", overflowX:"hidden" }}>
+        <div style={{ padding:(page==="analytics"||page==="people")?0:24, flex:1, overflowY:"auto", overflowX:"hidden" }}>
           {page === "timeline" && <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:24 }}>
             <div ref={managerDropRef} style={{ position:"relative" }}>
               <div onClick={() => !isDesigner && setManagerDropOpen(o => !o)}
@@ -2449,6 +2876,15 @@ export default function App() {
               setDrawer={d => { setDrawer(d); setDrawerSearch(""); setDrawerSort(false); setDrawerManagers([]); }}
               setManager={m => { setManager(m); setPage("timeline"); }}
               setPage={setPage}
+            />
+          )}
+          {page === "people" && isManager && (
+            <PeoplePage
+              squads={currentSquads}
+              manager={manager}
+              peopleData={people}
+              onSavePeople={savePeople}
+              onToast={addToast}
             />
           )}
         </div>
