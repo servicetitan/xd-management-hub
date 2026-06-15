@@ -2101,12 +2101,21 @@ export default function App() {
   const getTeam = m => {
     const t = teams[m] || {};
     const init = INIT_TEAMS[m] || {};
+    // MANAGER_DESIGNERS is the canonical source for who's on each team.
+    // Firebase teams data may contain stale short names from before org structure changes,
+    // so we always start from the canonical list and append any custom additions.
+    const canonical = MANAGER_DESIGNERS[m] || [];
+    const canonicalFirstNames = new Set(canonical.map(n => n.split(" ")[0].toLowerCase()));
+    const saved = t.designers || init.designers || [];
+    // Only keep saved names that aren't already covered by canonical (avoids stale short-name dupes)
+    const extras = saved.filter(n => !canonicalFirstNames.has(n.split(" ")[0].toLowerCase()));
+    const designers = [...canonical, ...extras];
     return {
       ...init,
       ...t,
-      designers: (t.designers && t.designers.length) ? t.designers : (init.designers || MANAGER_DESIGNERS[m] || []),
-      squads:    (t.squads    && t.squads.length)    ? t.squads    : (init.squads    || []),
-      pms:       (t.pms       && t.pms.length)       ? t.pms       : (init.pms       || []),
+      designers,
+      squads: (t.squads && t.squads.length) ? t.squads : (init.squads || []),
+      pms:    (t.pms    && t.pms.length)    ? t.pms    : (init.pms    || []),
     };
   };
 
