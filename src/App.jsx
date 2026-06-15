@@ -2055,11 +2055,20 @@ export default function App() {
               // Found by first name — upgrade the stored short name to full name
               const d = squads[fnLoc.si].designers[fnLoc.di];
               if (d.name !== dFull) {
-                delete dMap[d.name];
+                const oldName = d.name;
+                delete dMap[oldName];
                 d.name = dFull;
                 d.avatar = dFull.slice(0, 2).toUpperCase();
                 dMap[dFull] = fnLoc;
                 dMap[fn] = fnLoc;
+                // Migrate title, emoji, designerSquads keys from old short name to full name
+                const td = nt[mgrKey] || {};
+                ["titles","emojis","designerSquads"].forEach(field => {
+                  if (td[field]?.[oldName] !== undefined) {
+                    td[field][dFull] = td[field][oldName];
+                    delete td[field][oldName];
+                  }
+                });
               }
               loc = fnLoc;
             }
