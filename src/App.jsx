@@ -11,22 +11,38 @@ const SQUAD_COLORS = ["#1565C0","#388E3C","#E65100","#4527A0","#AD1457","#0288D1
 const DESIGNER_COLORS = ["#1565C0","#388E3C","#E65100","#4527A0","#AD1457","#0288D1","#C62828","#3949AB","#00796B","#BF360C","#8E24AA","#B71C1C","#0277BD","#558B2F","#7B1FA2","#E65100","#3949AB","#00897B","#FFB300","#7E57C2"];
 const SIZE_POINTS = { XL:3, L:2, M:1.5, S:1, XS:0.5 };
 const OVERLOAD_THRESHOLD = 6;
-const MANAGERS = ["Annie","Ashot","Carson","Debbie","Rudy"];
-const MANAGER_AS_DESIGNER = new Set(["Debbie"]);
+const MANAGERS = ["Annie","Ashot","Carson","Debbie","JB","Jess","Liz","Rudy"];
+const MANAGER_AS_DESIGNER = new Set();
 const SUB_MANAGERS = {
-  Carson: ["Christine","Ian","Michael"],
-  Annie:  ["Kim"],
+  Annie:  ["Declan","Kim","Michael"],
+  Carson: ["Christine","Doug","Ian"],
+  Jess:   ["Derek","Sophia"],
 };
 const MANAGER_DESIGNERS = {
-  Ashot:     ["Arevik","Gayane","Inga","Laura","Lusine","Nor","Zara"],
-  Annie:     ["Ken","Jozef","Hsin","Swaroop"],
-  Kim:       ["Gohar","Heidi","Shawn"],
-  Carson:    ["Brian","Doug","Armine","Aida","Kristen","Alexandra","Declan","Sabrina"],
-  Christine: ["Lance"],
-  Ian:       ["Kevin","Lejla","Ryan"],
-  Michael:   ["Jennie"],
-  Debbie:    ["Christy","Mary","Ying","Sofia"],
-  Rudy:      ["Andrea","Mimi","Allison","Miranda","Yiyang","Aarti","Zoey","JJ"],
+  Annie:     ["Annie Grigoryan","Ken Arai","Jozef Banuelos","Swaroop John"],
+  Ashot:     ["Arevik Chalikyan","Gayane Odabashyan","Inga Gasparyan","Laura Matevosyan","Nor Yesayan","Zara Avdalyan"],
+  Carson:    ["Carson Artz","Aida Hambardzumyan","Kristen Jones","Mary Walton"],
+  Debbie:    ["Debbie Pan","Brian Clark","JJ ZHao","Lance Gutin"],
+  JB:        ["JB","Larisa Gavrilova","Linlin Yi","Meera Ramachadran"],
+  Jess:      ["Jess Paris","Ben Ho","Helen Holmes","James Coyle","Nick Sands","Patrick Buckingham"],
+  Liz:       ["Liz Gershman"],
+  Rudy:      ["Aarti Vashisht","Armine Hakobyan","Mimi Weber","Miranda Lin","Yiyang Liu","Zoey Zhang"],
+  Declan:    ["Declan Van Welie","Heidi Cheon","Hsin Chen"],
+  Kim:       ["Kim Raimondi","Gohar Avagyan","Shawn Khodai"],
+  Michael:   ["Michael Hayashi","Jennie (Siyuan) Teng","Lusine Grigoryan"],
+  Christine: ["Christine Chan","Allison Salazar"],
+  Doug:      ["Doug Cloud","Christy Song"],
+  Ian:       ["Ian Erickson","Kevin Eison","Lejla Imamovic","Ryan Batch"],
+  Derek:     ["Derek Watson","Adam Lantz","Erica Gugliemella"],
+  Sophia:    ["Sophia Pozzi","Artyom Hakobyan","Cecy Blyumin","Eric Guevara","Mariam Melkonyan"],
+};
+const SHEET_ID = "1xMPr5xf_bZBLuOyyMCpc41mbCyhPxTPEUnV7dkEG750";
+const SHEET_TAB_MAP = {
+  Annie: "Annie", Ashot: "Ashot", Carson: "Carson", Debbie: "Debbie",
+  JB: "JB", Jess: "Jess", Liz: "Liz", Rudy: "Rudy",
+  Declan: "Annie / Declan", Kim: "Annie / Kim", Michael: "Annie / Michael",
+  Christine: "Carson / Christine", Doug: "Carson / Doug", Ian: "Carson / Ian",
+  Derek: "Jess / Derek", Sophia: "Jess / Sophia",
 };
 const DEF_DESIGNERS = MANAGER_DESIGNERS["Ashot"];
 const DEF_SQUADS = ["Reporting","Intelligent Support Automation","Identity","Tenant Management","API Platform","Fleet Pro","Marketing Autopilot","Reputation","Document Template Engine","Org Model","Enterprise Hub","GUM"];
@@ -147,15 +163,22 @@ const ASHOT_SQUADS = [
 
 const INITIAL_STATE = {
   managers: {
-    Ashot:  { squads: ASHOT_SQUADS },
+    Ashot:     { squads: ASHOT_SQUADS },
+    Annie:     { squads: [] },
+    Declan:    { squads: [] },
+    Kim:       { squads: [] },
+    Michael:   { squads: [] },
     Carson:    { squads: [] },
     Christine: { squads: [] },
+    Doug:      { squads: [] },
     Ian:       { squads: [] },
-    Michael:   { squads: [] },
-    Annie:  { squads: [] },
-    Kim:    { squads: [] },
-    Debbie: { squads: [] },
-    Rudy:   { squads: [] },
+    Debbie:    { squads: [] },
+    JB:        { squads: [] },
+    Jess:      { squads: [] },
+    Derek:     { squads: [] },
+    Sophia:    { squads: [] },
+    Liz:       { squads: [] },
+    Rudy:      { squads: [] },
   },
 };
 
@@ -1795,17 +1818,12 @@ function Drawer({drawer,setDrawer,drawerSearch,setDrawerSearch,drawerSort,setDra
 
 
 // ---------- INIT_TEAMS ----------
-const INIT_TEAMS = {
-  Ashot:     { designers: MANAGER_DESIGNERS.Ashot,     squads: DEF_SQUADS, pms: DEF_PMS },
-  Annie:     { designers: MANAGER_DESIGNERS.Annie,     squads: [], pms: [] },
-  Kim:       { designers: MANAGER_DESIGNERS.Kim,       squads: [], pms: [] },
-  Carson:    { designers: MANAGER_DESIGNERS.Carson,    squads: [], pms: [] },
-  Christine: { designers: MANAGER_DESIGNERS.Christine, squads: [], pms: [] },
-  Ian:       { designers: MANAGER_DESIGNERS.Ian,       squads: [], pms: [] },
-  Michael:   { designers: MANAGER_DESIGNERS.Michael,   squads: [], pms: [] },
-  Debbie:    { designers: MANAGER_DESIGNERS.Debbie,    squads: [], pms: [] },
-  Rudy:      { designers: MANAGER_DESIGNERS.Rudy,      squads: [], pms: [] },
-};
+const INIT_TEAMS = Object.fromEntries(
+  [...MANAGERS, ...Object.values(SUB_MANAGERS).flat()].map(k => [
+    k,
+    { designers: MANAGER_DESIGNERS[k] || [], squads: k === "Ashot" ? DEF_SQUADS : [], pms: k === "Ashot" ? DEF_PMS : [] }
+  ])
+);
 
 // ---------- Role map ----------
 function buildUserMap() {
@@ -1873,6 +1891,30 @@ function LoginScreen({ onLogin }) {
   );
 }
 
+// ---------- Sheet sync helpers ----------
+function parseSheetCSV(text) {
+  const rows = [];
+  for (const line of text.split('\n')) {
+    if (!line.trim()) continue;
+    const row = []; let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (c === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+      else if (c === ',' && !inQ) { row.push(cur); cur = ''; }
+      else cur += c;
+    }
+    row.push(cur.replace(/\r$/, ''));
+    rows.push(row);
+  }
+  return rows;
+}
+function parseDateFromSheet(str) {
+  if (!str) return null;
+  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  return `${m[3]}-${m[1].padStart(2,'0')}-${m[2].padStart(2,'0')}`;
+}
+
 // ---------- App ----------
 export default function App() {
   const [appReady, setAppReady] = useState(false);
@@ -1899,6 +1941,7 @@ export default function App() {
   const [editProj, setEditProj] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showOverload, setShowOverload] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(null); // null | { running, done, total, added, updated, errors }
   const lastLocalChange = useRef(0);
 
   // Reset VP sub-filters when switching between "all" and a specific manager
@@ -1964,6 +2007,64 @@ export default function App() {
     setTeams(nt);
     await storage.set("xdh-teams-v34", JSON.stringify(nt), true);
   }, []);
+
+  const syncFromSheets = async (tabKeys) => {
+    setSyncStatus({ running: true, done: 0, total: tabKeys.length, added: 0, updated: 0, errors: [] });
+    const ns = JSON.parse(JSON.stringify(state));
+    let totalAdded = 0, totalUpdated = 0, errors = [];
+    for (const mgrKey of tabKeys) {
+      const tabName = SHEET_TAB_MAP[mgrKey];
+      if (!tabName) { errors.push(mgrKey); setSyncStatus(s => ({ ...s, done: s.done + 1 })); continue; }
+      try {
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+        const rows = parseSheetCSV(await (await fetch(url)).text());
+        if (rows.length < 2) { setSyncStatus(s => ({ ...s, done: s.done + 1 })); continue; }
+        const h = rows[0].map(c => c.trim().toLowerCase());
+        const ci = f => h.indexOf(f);
+        const [cP,cD,cS,cE,cSq,cSz,cPM,cT,cSt] = [ci("project"),ci("designer"),ci("start date"),ci("end date"),ci("squad"),ci("size"),ci("pm"),ci("type"),ci("status")];
+        if (!ns.managers[mgrKey]) ns.managers[mgrKey] = { squads: [] };
+        const squads = ns.managers[mgrKey].squads;
+        if (!squads.length) squads.push({ id:`sq_default_${mgrKey}`, name:"Team", colorIdx:0, designers:[] });
+        const dMap = {};
+        squads.forEach((sq,si) => sq.designers.forEach((d,di) => {
+          dMap[d.name] = { si, di };
+          const fn = d.name.split(" ")[0];
+          if (!dMap[fn]) dMap[fn] = { si, di };
+        }));
+        for (const row of rows.slice(1)) {
+          const dFull = row[cD]?.trim(), pName = row[cP]?.trim();
+          if (!dFull || !pName) continue;
+          const startDate = parseDateFromSheet(row[cS]?.trim()), endDate = parseDateFromSheet(row[cE]?.trim());
+          if (!startDate || !endDate) continue;
+          const val = v => { const x = row[v]?.trim(); return (!x || x === "-") ? "" : x; };
+          const size = ["XS","S","M","L","XL"].includes(val(cSz)) ? val(cSz) : "M";
+          let loc = dMap[dFull] || dMap[dFull.split(" ")[0]];
+          if (!loc) {
+            squads[0].designers.push({ id:`d_${mgrKey}_${dFull.replace(/\s+/g,"_")}`, name:dFull, avatar:dFull.slice(0,2).toUpperCase(), projects:[] });
+            const di = squads[0].designers.length - 1;
+            loc = { si:0, di }; dMap[dFull] = loc; dMap[dFull.split(" ")[0]] = loc;
+          }
+          const designer = squads[loc.si].designers[loc.di];
+          const mergeKey = `${pName}::${designer.name}`;
+          const xi = designer.projects.findIndex(p => !isLeaveItem(p) && `${p.name}::${designer.name}` === mergeKey);
+          const proj = { name:pName, size, squad:val(cSq), pms:val(cPM)?[val(cPM)]:[], type:val(cT), status:val(cSt), startDate, endDate };
+          if (xi >= 0) { designer.projects[xi] = { ...designer.projects[xi], ...proj }; totalUpdated++; }
+          else { designer.projects.push({ id:`p_sh_${mgrKey}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, ...proj }); totalAdded++; }
+        }
+        setSyncStatus(s => ({ ...s, done: s.done + 1 }));
+      } catch(e) {
+        errors.push(mgrKey);
+        setSyncStatus(s => ({ ...s, done: s.done + 1, errors: [...s.errors, mgrKey] }));
+      }
+    }
+    await saveState(ns);
+    const summary = `Sync done: ${totalAdded} added, ${totalUpdated} updated${errors.length ? `, ${errors.length} failed` : ""}`;
+    setSyncStatus({ running: false, done: tabKeys.length, total: tabKeys.length, added: totalAdded, updated: totalUpdated, errors, summary });
+    const id = Date.now();
+    setToasts(t => [...t, { id, msg: summary, type: errors.length ? "error" : "success" }]);
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4000);
+    setTimeout(() => setSyncStatus(null), 4000);
+  };
 
   const addToast = (msg, type = "success") => {
     const id = Date.now();
@@ -2387,6 +2488,20 @@ export default function App() {
               <button onClick={() => { setAddPrefill(isDesigner ? { designer: user } : null); setShowAdd(true); }} style={{ display:"flex", alignItems:"center", gap:6, height:40, padding:"0 20px", borderRadius:20, border:"none", background:"#2563EB", color:"#fff", fontSize:14, fontWeight:500, cursor:"pointer", flexShrink:0, boxShadow:"0 1px 2px rgba(0,0,0,0.3)" }}>
                 <MI name="add" size={13} />
                 Add Project
+              </button>
+            )}
+            {(isVP || (isManager && !isDesigner && isOwnTeam)) && (
+              <button
+                disabled={syncStatus?.running}
+                onClick={() => {
+                  const tabs = isVP
+                    ? Object.keys(SHEET_TAB_MAP)
+                    : [manager, ...(SUB_MANAGERS[manager] || [])];
+                  syncFromSheets(tabs);
+                }}
+                style={{ display:"flex", alignItems:"center", gap:6, height:40, padding:"0 16px", borderRadius:20, border:"1px solid #E0E0E0", background: syncStatus?.running ? "#F5F5F5" : "#fff", color: syncStatus?.running ? "#90A4AE" : "#546E7A", fontSize:13, fontWeight:500, cursor: syncStatus?.running ? "default" : "pointer", flexShrink:0, fontFamily:"'Inter',sans-serif", transition:"all 0.15s" }}>
+                <MI name={syncStatus?.running ? "sync" : "cloud_download"} size={15} style={{ animation: syncStatus?.running ? "spin 1s linear infinite" : "none" }} />
+                {syncStatus?.running ? `Syncing ${syncStatus.done}/${syncStatus.total}…` : "Sync from Sheets"}
               </button>
             )}
           </div>}
