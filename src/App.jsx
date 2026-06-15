@@ -2018,6 +2018,7 @@ export default function App() {
   const syncFromSheets = async (tabKeys) => {
     setSyncStatus({ running: true, done: 0, total: tabKeys.length, added: 0, updated: 0, errors: [] });
     const ns = JSON.parse(JSON.stringify(state));
+    const nt = JSON.parse(JSON.stringify(teams));
     let totalAdded = 0, totalUpdated = 0, errors = [];
     for (const mgrKey of tabKeys) {
       const tabName = SHEET_TAB_MAP[mgrKey];
@@ -2032,6 +2033,7 @@ export default function App() {
         if (!ns.managers[mgrKey]) ns.managers[mgrKey] = { squads: [] };
         const squads = ns.managers[mgrKey].squads;
         if (!squads.length) squads.push({ id:`sq_default_${mgrKey}`, name:"Team", colorIdx:0, designers:[] });
+        // Build lookup: full name → location, first name → location
         const dMap = {};
         squads.forEach((sq,si) => sq.designers.forEach((d,di) => {
           dMap[d.name] = { si, di };
@@ -2045,19 +2047,40 @@ export default function App() {
           if (!startDate || !endDate) continue;
           const val = v => { const x = row[v]?.trim(); return (!x || x === "-") ? "" : x; };
           const size = ["XS","S","M","L","XL"].includes(val(cSz)) ? val(cSz) : "M";
-          let loc = dMap[dFull] || dMap[dFull.split(" ")[0]];
+          let loc = dMap[dFull];
           if (!loc) {
+            const fn = dFull.split(" ")[0];
+            const fnLoc = dMap[fn];
+            if (fnLoc) {
+              // Found by first name — upgrade the stored short name to full name
+              const d = squads[fnLoc.si].designers[fnLoc.di];
+              if (d.name !== dFull) {
+                delete dMap[d.name];
+                d.name = dFull;
+                d.avatar = dFull.slice(0, 2).toUpperCase();
+                dMap[dFull] = fnLoc;
+                dMap[fn] = fnLoc;
+              }
+              loc = fnLoc;
+            }
+          }
+          if (!loc) {
+            // Truly new designer — add to first squad
             squads[0].designers.push({ id:`d_${mgrKey}_${dFull.replace(/\s+/g,"_")}`, name:dFull, avatar:dFull.slice(0,2).toUpperCase(), projects:[] });
             const di = squads[0].designers.length - 1;
             loc = { si:0, di }; dMap[dFull] = loc; dMap[dFull.split(" ")[0]] = loc;
           }
           const designer = squads[loc.si].designers[loc.di];
-          const mergeKey = `${pName}::${designer.name}`;
-          const xi = designer.projects.findIndex(p => !isLeaveItem(p) && `${p.name}::${designer.name}` === mergeKey);
+          // Merge by project name (designer name is now canonical full name)
+          const xi = designer.projects.findIndex(p => !isLeaveItem(p) && p.name === pName);
           const proj = { name:pName, size, squad:val(cSq), pms:val(cPM)?[val(cPM)]:[], type:val(cT), status:val(cSt), startDate, endDate };
           if (xi >= 0) { designer.projects[xi] = { ...designer.projects[xi], ...proj }; totalUpdated++; }
           else { designer.projects.push({ id:`p_sh_${mgrKey}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, ...proj }); totalAdded++; }
         }
+        // Update teams settings to use canonical full names — fixes Timeline visibility filter
+        const canonical = MANAGER_DESIGNERS[mgrKey] || [];
+        if (!nt[mgrKey]) nt[mgrKey] = {};
+        nt[mgrKey] = { ...nt[mgrKey], designers: canonical };
         setSyncStatus(s => ({ ...s, done: s.done + 1 }));
       } catch(e) {
         errors.push(mgrKey);
@@ -2065,6 +2088,7 @@ export default function App() {
       }
     }
     await saveState(ns);
+    await saveTeams(nt);
     const summary = `Sync done: ${totalAdded} added, ${totalUpdated} updated${errors.length ? `, ${errors.length} failed` : ""}`;
     setSyncStatus({ running: false, done: tabKeys.length, total: tabKeys.length, added: totalAdded, updated: totalUpdated, errors, summary });
     const id = Date.now();
