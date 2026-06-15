@@ -2019,6 +2019,20 @@ export default function App() {
     setSyncStatus({ running: true, done: 0, total: tabKeys.length, added: 0, updated: 0, errors: [] });
     const ns = JSON.parse(JSON.stringify(state));
     const nt = JSON.parse(JSON.stringify(teams));
+    // Deduplicate leave entries left by previous broken syncs: for each leave type name
+    // keep at most one entry per designer, preferring the proper leave-typed item.
+    Object.values(ns.managers).forEach(mgr => {
+      (mgr.squads || []).forEach(sq => {
+        sq.designers.forEach(d => {
+          const best = {};
+          d.projects.forEach(p => {
+            if (!LEAVE_TYPES.includes(p.name)) return;
+            if (!best[p.name] || (isLeaveItem(p) && !isLeaveItem(best[p.name]))) best[p.name] = p;
+          });
+          d.projects = d.projects.filter(p => !LEAVE_TYPES.includes(p.name) || best[p.name] === p);
+        });
+      });
+    });
     let totalAdded = 0, totalUpdated = 0, errors = [];
     for (const mgrKey of tabKeys) {
       const tabName = SHEET_TAB_MAP[mgrKey];
