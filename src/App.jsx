@@ -2043,6 +2043,7 @@ export default function App() {
         for (const row of rows.slice(1)) {
           const dFull = row[cD]?.trim(), pName = row[cP]?.trim();
           if (!dFull || !pName) continue;
+          if (LEAVE_TYPES.includes(pName)) continue; // leave entries are managed in-app only
           const startDate = parseDateFromSheet(row[cS]?.trim()), endDate = parseDateFromSheet(row[cE]?.trim());
           if (!startDate || !endDate) continue;
           const val = v => { const x = row[v]?.trim(); return (!x || x === "-") ? "" : x; };
