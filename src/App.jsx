@@ -44,6 +44,13 @@ const SHEET_TAB_MAP = {
   Christine: "Carson / Christine", Doug: "Carson / Doug", Ian: "Carson / Ian",
   Derek: "Jess / Derek", Sophia: "Jess / Sophia",
 };
+// Maps each designer's first name (lowercase) to their canonical manager key.
+// Used to filter out stale Firebase entries for designers who moved to a new team.
+const DESIGNER_CANONICAL_MGR = {};
+Object.entries(MANAGER_DESIGNERS).forEach(([mgr, list]) =>
+  list.forEach(n => { DESIGNER_CANONICAL_MGR[n.split(" ")[0].toLowerCase()] = mgr; })
+);
+
 const DEF_DESIGNERS = MANAGER_DESIGNERS["Ashot"];
 const DEF_SQUADS = ["Reporting","Intelligent Support Automation","Identity","Tenant Management","API Platform","Fleet Pro","Marketing Autopilot","Reputation","Document Template Engine","Org Model","Enterprise Hub","GUM"];
 const DEF_PMS = ["Daniel Weiss","Khachik Tadevosyan","Jon Diamond","Lilit Ghukasyan","Vsevolod Morozov","Stephanie Dority","Krishna Kapila","Gamaliel Obinyan","Davit Arakelyan","John Billington","Derek Browers","Bella Arutyunyan","Austin Vogel","Lusine Martirosyan","Anna Arakelyan"];
@@ -2101,21 +2108,28 @@ export default function App() {
   const getTeam = m => {
     const t = teams[m] || {};
     const init = INIT_TEAMS[m] || {};
-    // MANAGER_DESIGNERS is the canonical source for who's on each team.
-    // Firebase teams data may contain stale short names from before org structure changes,
-    // so we always start from the canonical list and append any custom additions.
     const canonical = MANAGER_DESIGNERS[m] || [];
-    const canonicalFirstNames = new Set(canonical.map(n => n.split(" ")[0].toLowerCase()));
-    const saved = t.designers || init.designers || [];
-    // Only keep saved names that aren't already covered by canonical (avoids stale short-name dupes)
-    const extras = saved.filter(n => !canonicalFirstNames.has(n.split(" ")[0].toLowerCase()));
-    const designers = [...canonical, ...extras];
+    const saved = (t.designers?.length) ? t.designers : (init.designers || []);
+
+    // Keep saved names that canonically belong to this team (filter out anyone
+    // who has moved to a different manager since the Firebase data was last saved).
+    const filteredSaved = saved.filter(n => {
+      const owner = DESIGNER_CANONICAL_MGR[n.split(" ")[0].toLowerCase()];
+      return !owner || owner === m;
+    });
+
+    // Add canonical members whose first name isn't already represented in saved data
+    // (covers new hires and people whose manager entry was never saved to Firebase).
+    const savedFirstNames = new Set(filteredSaved.map(n => n.split(" ")[0].toLowerCase()));
+    const extras = canonical.filter(n => !savedFirstNames.has(n.split(" ")[0].toLowerCase()));
+    const designers = [...filteredSaved, ...extras];
+
     return {
       ...init,
       ...t,
-      designers,
-      squads: (t.squads && t.squads.length) ? t.squads : (init.squads || []),
-      pms:    (t.pms    && t.pms.length)    ? t.pms    : (init.pms    || []),
+      designers: designers.length ? designers : canonical,
+      squads: (t.squads?.length) ? t.squads : (init.squads || []),
+      pms:    (t.pms?.length)    ? t.pms    : (init.pms    || []),
     };
   };
 
