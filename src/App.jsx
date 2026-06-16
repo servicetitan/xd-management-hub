@@ -2213,7 +2213,7 @@ export default function App() {
       ...init,
       ...t,
       designers: designers.length ? designers : canonical,
-      squads: rawSquads.map(normSquad),
+      squads: rawSquads.map(normSquad).filter(s => !s.includes(" . ")),
       pms:    (t.pms?.length)    ? t.pms    : (init.pms    || []),
       ...(normDesignerSquads !== undefined ? { designerSquads: normDesignerSquads } : {}),
     };
