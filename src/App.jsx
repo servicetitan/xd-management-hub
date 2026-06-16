@@ -2205,12 +2205,17 @@ export default function App() {
     const extras = canonical.filter(n => !savedFirstNames.has(n.split(" ")[0].toLowerCase()));
     const designers = [...filteredSaved, ...extras];
 
+    const rawSquads = (t.squads?.length) ? t.squads : (init.squads || []);
+    const normDesignerSquads = t.designerSquads
+      ? Object.fromEntries(Object.entries(t.designerSquads).map(([d, sqs]) => [d, sqs.map(normSquad)]))
+      : t.designerSquads;
     return {
       ...init,
       ...t,
       designers: designers.length ? designers : canonical,
-      squads: (t.squads?.length) ? t.squads : (init.squads || []),
+      squads: rawSquads.map(normSquad),
       pms:    (t.pms?.length)    ? t.pms    : (init.pms    || []),
+      ...(normDesignerSquads !== undefined ? { designerSquads: normDesignerSquads } : {}),
     };
   };
 
