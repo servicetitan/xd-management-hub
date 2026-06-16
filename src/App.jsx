@@ -428,7 +428,7 @@ const EMOJI_KEYWORDS = {
 };
 
 // ---------- TitlePopover ----------
-const TITLE_OPTIONS = ["Product Designer","Senior Product Designer","Staff Product Designer","Senior Staff Product Designer"];
+const TITLE_OPTIONS = ["Product Designer","Senior Product Designer","Staff Product Designer","Senior Staff Product Designer","Manager","Group Manager","Director","Senior Director"];
 
 function TitlePopover({name, title, squads, assignedSquads, emoji, onSave, onClose}) {
   const [selTitle, setSelTitle] = useState(title||"");
