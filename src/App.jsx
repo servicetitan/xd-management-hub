@@ -36,6 +36,36 @@ const MANAGER_DESIGNERS = {
   Derek:     ["Derek Watson","Adam Lantz","Erica Gugliemella"],
   Sophia:    ["Sophia Pozzi","Artyom Hakobyan","Cecy Blyumin","Eric Guevara","Mariam Melkonyan"],
 };
+// Canonical squad short codes — used to normalize long names from existing Firebase data
+const SQUAD_LONG_TO_SHORT = {
+  "Pricebook Core":"PB","Pricebook Pro":"PB","Estimates":"EST","Dispatch":"DIS",
+  "Lead Integrations":"CCPH","Legacy Scheduling":"SETO","Scheduling Pro":"SETO",
+  "Capacity":"FCS","Optimus":"OPT","Field Pro":"SPRO","PLG":"PLG",
+  "Fleet Pro":"FL","Advertising":"MAD","Marketing Platform":"MPA","Reputation":"REP",
+  "Marketing Contact Management":"MCONT","Standalone Platform":"PIP","Marketing Autopilot":"MRK",
+  "Schedule Engine Connect":"SELI","Job Booking/Contact Experience":"JBCE",
+  "Contact Center Pro":"CCP","Voice Agent":"VA","Payroll and Timesheets":"PT",
+  "Accounting":"ACC","Smart Assets":"SA","Fintech":"FIN","Customer Journey Team":"CJ",
+  "Intelligent Support Automation":"ISA","Purchasing & Inventory":"INV",
+  "Reporting":"RD","Supply Chain":"SUP","API Platform":"API",
+  "Enterprise Hub":"EH","Enterpise Hub":"EH",
+  "Global User Management":"GUM","Identity & User Management":"IUM","Identity":"IUM",
+  "Central Integrations":"INT","Service Agreements & Memberships":"MEM",
+  "Job Planning & Management":"JPM","CRM":"CRM","Equipment (SalesTech)":"EQ",
+  "Commercial":"COMMSR","Construction":"CONS","New Trades":"NTA",
+  "Customer Portal Platform":"CPO","Forms & Media":"FAM","TaskHub":"TH","Routing":"ROUT",
+  "Tenant Management":"TM","Internal Billing":"IB","Real Time Communication Platform":"RTC",
+  "CommHub & Toolbelt":"CHAT","Frontend Platform":"FAR","Org Model":"ORG",
+  "Backend Platform":"ARCH","Data Management":"DTS","Document Template Engine":"DTE",
+  "Anvil Design System":"ANV","Platformization":"PLATZ",
+  "Automation Platform and EXperiences":"APEX","Cloud Ops":"OC","Infrastructure":"SRE",
+  "Essentials":"WMA","Growth":"WMA","Mobile Platform":"MP","Global Search":"GS",
+  "E2E Experience":"EE","Ti Data Platform":"DP",
+  "Ti ML Platform":"TI","Titan Intelligence Standalone":"TI","TI Atlas/Assist Platform":"TI",
+  "Glass Doctor 2.0":"GD20",
+};
+const normSquad = s => SQUAD_LONG_TO_SHORT[s] || s;
+
 const SHEET_ID = "1xMPr5xf_bZBLuOyyMCpc41mbCyhPxTPEUnV7dkEG750";
 const SHEET_TAB_MAP = {
   Annie: "Annie", Ashot: "Ashot", Carson: "Carson", Debbie: "Debbie",
@@ -52,7 +82,7 @@ Object.entries(MANAGER_DESIGNERS).forEach(([mgr, list]) =>
 );
 
 const DEF_DESIGNERS = MANAGER_DESIGNERS["Ashot"];
-const DEF_SQUADS = ["Reporting","Intelligent Support Automation","Identity","Tenant Management","API Platform","Fleet Pro","Marketing Autopilot","Reputation","Document Template Engine","Org Model","Enterprise Hub","GUM"];
+const DEF_SQUADS = ["RD","ISA","IUM","TM","API","FL","MRK","REP","DTE","ORG","EH","GUM"];
 const DEF_PMS = ["Daniel Weiss","Khachik Tadevosyan","Jon Diamond","Lilit Ghukasyan","Vsevolod Morozov","Stephanie Dority","Krishna Kapila","Gamaliel Obinyan","Davit Arakelyan","John Billington","Derek Browers","Bella Arutyunyan","Austin Vogel","Lusine Martirosyan","Anna Arakelyan"];
 const SIZES = ["XS","S","M","L","XL"];
 const STATUS = { "Backlog":{color:"#90A4AE",bg:"#F5F5F5"}, "Not Started":{color:"#90A4AE",bg:"#F5F5F5"}, "In Progress":{color:"#1565C0",bg:"#E3F2FD"}, "Dev Support":{color:"#00796B",bg:"#E0F2F1"}, "Design QA":{color:"#BF360C",bg:"#FBE9E7"}, "In Review":{color:"#E65100",bg:"#FFF8E1"}, "On Hold":{color:"#C62828",bg:"#FFEBEE"}, "Done":{color:"#2E7D32",bg:"#E8F5E9"} };
@@ -73,17 +103,17 @@ const LEAVE_TYPES = ["PTO","STO","Maternity Leave","Paternity Leave"];
 const LEAVE_COLORS = {"PTO":"#607D8B","STO":"#E65100","Maternity Leave":"#880E4F","Paternity Leave":"#4527A0"};
 const LEAVE_STATUSES = ["Planned","In Progress","Completed"];
 const SQUAD_PM_MAP = {
-  "Reporting":                ["Daniel Weiss","Khachik Tadevosyan","Jon Diamond","Lilit Ghukasyan"],
-  "Identity":                 ["Vsevolod Morozov","Stephanie Dority"],
-  "Tenant Management":        ["Gamaliel Obinyan"],
-  "API Platform":             ["Krishna Kapila"],
-  "Fleet Pro":                ["Davit Arakelyan"],
-  "Marketing Autopilot":      ["John Billington"],
-  "Reputation":               ["Derek Browers"],
-  "Document Template Engine": ["Bella Arutyunyan"],
-  "Org Model":                ["Austin Vogel"],
-  "GUM":                      ["Lusine Martirosyan"],
-  "Enterprise Hub":           ["Anna Arakelyan"],
+  "RD":  ["Daniel Weiss","Khachik Tadevosyan","Jon Diamond","Lilit Ghukasyan"],
+  "IUM": ["Vsevolod Morozov","Stephanie Dority"],
+  "TM":  ["Gamaliel Obinyan"],
+  "API": ["Krishna Kapila"],
+  "FL":  ["Davit Arakelyan"],
+  "MRK": ["John Billington"],
+  "REP": ["Derek Browers"],
+  "DTE": ["Bella Arutyunyan"],
+  "ORG": ["Austin Vogel"],
+  "GUM": ["Lusine Martirosyan"],
+  "EH":  ["Anna Arakelyan"],
 };
 const PM_SQUAD_MAP = {};
 Object.entries(SQUAD_PM_MAP).forEach(([sq,pms])=>pms.forEach(pm=>{ PM_SQUAD_MAP[pm]=sq; }));
@@ -91,23 +121,23 @@ Object.entries(SQUAD_PM_MAP).forEach(([sq,pms])=>pms.forEach(pm=>{ PM_SQUAD_MAP[
 const ASHOT_SQUADS = [
   { id:"s1", name:"Reporting", colorIdx:0, designers:[
     { id:"d1", name:"Arevik", avatar:"AR", projects:[
-      { id:"p9",  name:"Command Center - Financial Performance", size:"XL", startDate:"2026-03-10", endDate:"2026-04-07", squad:"Reporting", pms:["Jon Diamond"] },
-      { id:"p15", name:"Embedded BI Experience Vision",          size:"XL", startDate:"2026-02-03", endDate:"2026-05-02", squad:"Reporting", pms:["Daniel Weiss","Khachik Tadevosyan"] },
-      { id:"p61", name:"Reporting & Dashboards North Star Vision", size:"XL", startDate:"2026-03-30", endDate:"2026-06-15", squad:"Reporting", pms:["Khachik Tadevosyan"] },
+      { id:"p9",  name:"Command Center - Financial Performance", size:"XL", startDate:"2026-03-10", endDate:"2026-04-07", squad:"RD", pms:["Jon Diamond"] },
+      { id:"p15", name:"Embedded BI Experience Vision",          size:"XL", startDate:"2026-02-03", endDate:"2026-05-02", squad:"RD", pms:["Daniel Weiss","Khachik Tadevosyan"] },
+      { id:"p61", name:"Reporting & Dashboards North Star Vision", size:"XL", startDate:"2026-03-30", endDate:"2026-06-15", squad:"RD", pms:["Khachik Tadevosyan"] },
     ]},
     { id:"d2", name:"Laura", avatar:"LA", projects:[
-      { id:"p50", name:"Quadrant Movement",                size:"XL", startDate:"2026-01-01", endDate:"2026-03-01", squad:"Reporting", pms:["Lilit Ghukasyan"] },
-      { id:"p51", name:"Benchmark TI BAU",                 size:"M",  startDate:"2026-02-01", endDate:"2026-04-30", squad:"Reporting", pms:["Lilit Ghukasyan"] },
-      { id:"p52", name:"Front Funnel Metrics",             size:"M",  startDate:"2026-03-25", endDate:"2026-04-25", squad:"Reporting", pms:["Lilit Ghukasyan"] },
-      { id:"p53", name:"Atlas Summaries",                  size:"M",  startDate:"2026-03-30", endDate:"2026-04-30", squad:"Reporting", pms:["Lilit Ghukasyan"] },
-      { id:"p54", name:"Job Breakdown Details",            size:"M",  startDate:"2026-04-23", endDate:"2026-05-25", squad:"Reporting", pms:["Lilit Ghukasyan"] },
-      { id:"p55", name:"Action Planning",                  size:"M",  startDate:"2026-04-30", endDate:"2026-05-30", squad:"Reporting", pms:["Lilit Ghukasyan"] },
-      { id:"p56", name:"Balanced Scorecard",               size:"M",  startDate:"2026-05-30", endDate:"2026-06-30", squad:"Reporting", pms:["Lilit Ghukasyan"] },
-      { id:"p16", name:"Business Unit Benchmarking",       size:"L",  startDate:"2026-03-10", endDate:"2026-03-24", squad:"Reporting", pms:["Lilit Ghukasyan"] },
-      { id:"p17", name:"Customer Metrics",                 size:"L",  startDate:"2026-03-25", endDate:"2026-04-15", squad:"Reporting", pms:["Lilit Ghukasyan"] },
-      { id:"p18", name:"Benchmarks PDF Updates",           size:"M",  startDate:"2026-04-16", endDate:"2026-04-23", squad:"Reporting", pms:["Lilit Ghukasyan"] },
-      { id:"p19", name:"Ongoing Maintenance & UX Debts",  size:"S",  startDate:"2026-04-24", endDate:"2026-04-28", squad:"Reporting", pms:["Lilit Ghukasyan"] },
-      { id:"p20", name:"Experiments (Atlas, DIY Metrics)", size:"S",  startDate:"2026-04-29", endDate:"2026-05-05", squad:"Reporting", pms:["Lilit Ghukasyan"] },
+      { id:"p50", name:"Quadrant Movement",                size:"XL", startDate:"2026-01-01", endDate:"2026-03-01", squad:"RD", pms:["Lilit Ghukasyan"] },
+      { id:"p51", name:"Benchmark TI BAU",                 size:"M",  startDate:"2026-02-01", endDate:"2026-04-30", squad:"RD", pms:["Lilit Ghukasyan"] },
+      { id:"p52", name:"Front Funnel Metrics",             size:"M",  startDate:"2026-03-25", endDate:"2026-04-25", squad:"RD", pms:["Lilit Ghukasyan"] },
+      { id:"p53", name:"Atlas Summaries",                  size:"M",  startDate:"2026-03-30", endDate:"2026-04-30", squad:"RD", pms:["Lilit Ghukasyan"] },
+      { id:"p54", name:"Job Breakdown Details",            size:"M",  startDate:"2026-04-23", endDate:"2026-05-25", squad:"RD", pms:["Lilit Ghukasyan"] },
+      { id:"p55", name:"Action Planning",                  size:"M",  startDate:"2026-04-30", endDate:"2026-05-30", squad:"RD", pms:["Lilit Ghukasyan"] },
+      { id:"p56", name:"Balanced Scorecard",               size:"M",  startDate:"2026-05-30", endDate:"2026-06-30", squad:"RD", pms:["Lilit Ghukasyan"] },
+      { id:"p16", name:"Business Unit Benchmarking",       size:"L",  startDate:"2026-03-10", endDate:"2026-03-24", squad:"RD", pms:["Lilit Ghukasyan"] },
+      { id:"p17", name:"Customer Metrics",                 size:"L",  startDate:"2026-03-25", endDate:"2026-04-15", squad:"RD", pms:["Lilit Ghukasyan"] },
+      { id:"p18", name:"Benchmarks PDF Updates",           size:"M",  startDate:"2026-04-16", endDate:"2026-04-23", squad:"RD", pms:["Lilit Ghukasyan"] },
+      { id:"p19", name:"Ongoing Maintenance & UX Debts",  size:"S",  startDate:"2026-04-24", endDate:"2026-04-28", squad:"RD", pms:["Lilit Ghukasyan"] },
+      { id:"p20", name:"Experiments (Atlas, DIY Metrics)", size:"S",  startDate:"2026-04-29", endDate:"2026-05-05", squad:"RD", pms:["Lilit Ghukasyan"] },
     ]},
   ]},
   { id:"s2", name:"Intelligent Support Automation", colorIdx:1, designers:[
@@ -117,49 +147,49 @@ const ASHOT_SQUADS = [
   ]},
   { id:"s3", name:"Tenant Mgmt . Identity . API Platform", colorIdx:2, designers:[
     { id:"d4", name:"Inga", avatar:"IN", projects:[
-      { id:"p29",  name:"Multi Session Management BAU",             size:"S", startDate:"2026-02-01", endDate:"2026-04-01", squad:"Identity",          pms:["Vsevolod Morozov"] },
-      { id:"p24",  name:"Provisioning & Registry",                  size:"M", startDate:"2026-02-02", endDate:"2026-03-27", squad:"Tenant Management", pms:["Gamaliel Obinyan"] },
-      { id:"p5",   name:"2-step Login",                             size:"L", startDate:"2026-02-16", endDate:"2026-03-26", squad:"Identity",          pms:["Stephanie Dority"] },
-      { id:"p6",   name:"API Tunneling",                            size:"S", startDate:"2026-03-03", endDate:"2026-03-13", squad:"API Platform",      pms:["Krishna Kapila"] },
-      { id:"p8",   name:"Dev Portal Sign Up Flow Redesign",         size:"M", startDate:"2026-03-16", endDate:"2026-03-30", squad:"API Platform",      pms:["Krishna Kapila"] },
-      { id:"p22",  name:"MFA Admin Enforcement: Improvements",      size:"S", startDate:"2026-03-15", endDate:"2026-03-29", squad:"Identity",          pms:["Stephanie Dority"] },
-      { id:"p28",  name:"Settings Page Granularity",                size:"M", startDate:"2026-04-10", endDate:"2026-04-15", squad:"Identity",          pms:["Vsevolod Morozov"], status:"Not Started" },
-      { id:"p25",  name:"Context Switcher",                         size:"M", startDate:"2026-03-15", endDate:"2026-04-15", squad:"Identity",          pms:["Stephanie Dority"] },
-      { id:"p23",  name:"SSO Phase 3 - Self-Service Administration", size:"M", startDate:"2026-04-10", endDate:"2026-05-01", squad:"Identity",         pms:["Stephanie Dority"] },
-      { id:"p26",  name:"Account Linking & Dashboard",              size:"M", startDate:"2026-03-20", endDate:"2026-03-31", squad:"Identity",          pms:["Stephanie Dority"], status:"Done" },
-      { id:"p16b", name:"Access Control & Auditability",            size:"S", startDate:"2026-03-20", endDate:"2026-04-05", squad:"Tenant Management", pms:["Gamaliel Obinyan"] },
-      { id:"p27",  name:"User Profile Wizard",                      size:"M", startDate:"2026-05-01", endDate:"2026-06-10", squad:"Identity",          pms:["Stephanie Dority"] },
+      { id:"p29",  name:"Multi Session Management BAU",             size:"S", startDate:"2026-02-01", endDate:"2026-04-01", squad:"IUM",          pms:["Vsevolod Morozov"] },
+      { id:"p24",  name:"Provisioning & Registry",                  size:"M", startDate:"2026-02-02", endDate:"2026-03-27", squad:"TM", pms:["Gamaliel Obinyan"] },
+      { id:"p5",   name:"2-step Login",                             size:"L", startDate:"2026-02-16", endDate:"2026-03-26", squad:"IUM",          pms:["Stephanie Dority"] },
+      { id:"p6",   name:"API Tunneling",                            size:"S", startDate:"2026-03-03", endDate:"2026-03-13", squad:"API",      pms:["Krishna Kapila"] },
+      { id:"p8",   name:"Dev Portal Sign Up Flow Redesign",         size:"M", startDate:"2026-03-16", endDate:"2026-03-30", squad:"API",      pms:["Krishna Kapila"] },
+      { id:"p22",  name:"MFA Admin Enforcement: Improvements",      size:"S", startDate:"2026-03-15", endDate:"2026-03-29", squad:"IUM",          pms:["Stephanie Dority"] },
+      { id:"p28",  name:"Settings Page Granularity",                size:"M", startDate:"2026-04-10", endDate:"2026-04-15", squad:"IUM",          pms:["Vsevolod Morozov"], status:"Not Started" },
+      { id:"p25",  name:"Context Switcher",                         size:"M", startDate:"2026-03-15", endDate:"2026-04-15", squad:"IUM",          pms:["Stephanie Dority"] },
+      { id:"p23",  name:"SSO Phase 3 - Self-Service Administration", size:"M", startDate:"2026-04-10", endDate:"2026-05-01", squad:"IUM",         pms:["Stephanie Dority"] },
+      { id:"p26",  name:"Account Linking & Dashboard",              size:"M", startDate:"2026-03-20", endDate:"2026-03-31", squad:"IUM",          pms:["Stephanie Dority"], status:"Done" },
+      { id:"p16b", name:"Access Control & Auditability",            size:"S", startDate:"2026-03-20", endDate:"2026-04-05", squad:"TM", pms:["Gamaliel Obinyan"] },
+      { id:"p27",  name:"User Profile Wizard",                      size:"M", startDate:"2026-05-01", endDate:"2026-06-10", squad:"IUM",          pms:["Stephanie Dority"] },
     ]},
   ]},
   { id:"s4", name:"Fleet Pro . Reputation . Marketing Autopilot", colorIdx:3, designers:[
     { id:"d5", name:"Lusine", avatar:"LU", projects:[
-      { id:"p31", name:"Improve Autopilot Discovery BAU",    size:"S", startDate:"2026-02-01", endDate:"2026-04-30", squad:"Marketing Autopilot", pms:["John Billington"], status:"On Hold" },
-      { id:"p21", name:"Fully Automated AI Review Response", size:"M", startDate:"2026-02-10", endDate:"2026-03-09", squad:"Reputation",          pms:["Derek Browers"] },
-      { id:"p11", name:"Activity Timeline",                  size:"M", startDate:"2025-12-20", endDate:"2026-04-15", squad:"Fleet Pro",            pms:["Davit Arakelyan"], status:"On Hold" },
-      { id:"p12", name:"Branding in Campaigns",              size:"M", startDate:"2026-04-10", endDate:"2026-05-10", squad:"Marketing Autopilot", pms:["John Billington"], status:"Not Started" },
-      { id:"p10", name:"AEO Reporting",                      size:"M", startDate:"2026-03-11", endDate:"2026-04-05", squad:"Reputation",          pms:["Derek Browers"] },
-      { id:"p14", name:"Image Swap Improvements",            size:"M", startDate:"2026-03-12", endDate:"2026-04-15", squad:"Marketing Autopilot", pms:["John Billington"] },
-      { id:"p13", name:"Custom Campaigns",                   size:"S", startDate:"2026-04-10", endDate:"2026-05-10", squad:"Marketing Autopilot", pms:["John Billington"], status:"On Hold" },
-      { id:"p30", name:"Featured Jobs Widget",               size:"M", startDate:"2026-04-20", endDate:"2026-05-20", squad:"Reputation",          pms:["Derek Browers"], status:"Not Started" },
-      { id:"p33", name:"Atlas Summaries",                    size:"M", startDate:"2026-04-01", endDate:"2026-05-01", squad:"Fleet Pro",            pms:["Davit Arakelyan"] },
-      { id:"p34", name:"Driver Roles",                       size:"M", startDate:"2026-04-01", endDate:"2026-05-01", squad:"Fleet Pro",            pms:["Davit Arakelyan"] },
-      { id:"p32", name:"Safety Cam Remote Configurations",   size:"M", startDate:"2026-04-15", endDate:"2026-04-30", squad:"Fleet Pro",            pms:["Davit Arakelyan"] },
+      { id:"p31", name:"Improve Autopilot Discovery BAU",    size:"S", startDate:"2026-02-01", endDate:"2026-04-30", squad:"MRK", pms:["John Billington"], status:"On Hold" },
+      { id:"p21", name:"Fully Automated AI Review Response", size:"M", startDate:"2026-02-10", endDate:"2026-03-09", squad:"REP",          pms:["Derek Browers"] },
+      { id:"p11", name:"Activity Timeline",                  size:"M", startDate:"2025-12-20", endDate:"2026-04-15", squad:"FL",            pms:["Davit Arakelyan"], status:"On Hold" },
+      { id:"p12", name:"Branding in Campaigns",              size:"M", startDate:"2026-04-10", endDate:"2026-05-10", squad:"MRK", pms:["John Billington"], status:"Not Started" },
+      { id:"p10", name:"AEO Reporting",                      size:"M", startDate:"2026-03-11", endDate:"2026-04-05", squad:"REP",          pms:["Derek Browers"] },
+      { id:"p14", name:"Image Swap Improvements",            size:"M", startDate:"2026-03-12", endDate:"2026-04-15", squad:"MRK", pms:["John Billington"] },
+      { id:"p13", name:"Custom Campaigns",                   size:"S", startDate:"2026-04-10", endDate:"2026-05-10", squad:"MRK", pms:["John Billington"], status:"On Hold" },
+      { id:"p30", name:"Featured Jobs Widget",               size:"M", startDate:"2026-04-20", endDate:"2026-05-20", squad:"REP",          pms:["Derek Browers"], status:"Not Started" },
+      { id:"p33", name:"Atlas Summaries",                    size:"M", startDate:"2026-04-01", endDate:"2026-05-01", squad:"FL",            pms:["Davit Arakelyan"] },
+      { id:"p34", name:"Driver Roles",                       size:"M", startDate:"2026-04-01", endDate:"2026-05-01", squad:"FL",            pms:["Davit Arakelyan"] },
+      { id:"p32", name:"Safety Cam Remote Configurations",   size:"M", startDate:"2026-04-15", endDate:"2026-04-30", squad:"FL",            pms:["Davit Arakelyan"] },
     ]},
   ]},
   { id:"s5", name:"Org Model . Doc Templates . Global User Mgmt", colorIdx:4, designers:[
     { id:"d6", name:"Gayane", avatar:"GA", projects:[
-      { id:"p49", name:"Folder View",                   size:"L",  startDate:"2026-02-10", endDate:"2026-03-30", squad:"Org Model",                pms:["Austin Vogel"], status:"In Progress" },
-      { id:"p45", name:"Org Selector Component",        size:"S",  startDate:"2026-03-20", endDate:"2026-04-30", squad:"Org Model",                pms:["Austin Vogel"] },
-      { id:"p60", name:"Template Manager Northstar",    size:"XL", startDate:"2026-03-15", endDate:"2026-05-15", squad:"Document Template Engine", pms:["Bella Arutyunyan"] },
+      { id:"p49", name:"Folder View",                   size:"L",  startDate:"2026-02-10", endDate:"2026-03-30", squad:"ORG",                pms:["Austin Vogel"], status:"In Progress" },
+      { id:"p45", name:"Org Selector Component",        size:"S",  startDate:"2026-03-20", endDate:"2026-04-30", squad:"ORG",                pms:["Austin Vogel"] },
+      { id:"p60", name:"Template Manager Northstar",    size:"XL", startDate:"2026-03-15", endDate:"2026-05-15", squad:"DTE", pms:["Bella Arutyunyan"] },
     ]},
   ]},
   { id:"s6", name:"Internal Billing . Enterprise Hub", colorIdx:5, designers:[
     { id:"d7", name:"Nor", avatar:"NO", projects:[
       { id:"p37", name:"User Creation",                     size:"M", startDate:"2026-03-20", endDate:"2026-04-30", squad:"GUM",            pms:["Lusine Martirosyan"] },
-      { id:"p35", name:"Centralized Billing BAU",           size:"S", startDate:"2026-03-01", endDate:"2026-04-30", squad:"Enterprise Hub", pms:["Anna Arakelyan"] },
-      { id:"p1",  name:"Org Studio North Star Ph.1",        size:"L", startDate:"2026-03-10", endDate:"2026-03-27", squad:"Enterprise Hub", pms:["Austin Vogel","David Matevosyan"] },
-      { id:"p2",  name:"Titan Exchange Redesign",           size:"L", startDate:"2026-03-12", endDate:"2026-04-10", squad:"Enterprise Hub", pms:["Anna Arakelyan"] },
-      { id:"p36", name:"Audit Trails Enhancements",         size:"M", startDate:"2026-03-20", endDate:"2026-05-05", squad:"Enterprise Hub", pms:["Anna Arakelyan"] },
+      { id:"p35", name:"Centralized Billing BAU",           size:"S", startDate:"2026-03-01", endDate:"2026-04-30", squad:"EH", pms:["Anna Arakelyan"] },
+      { id:"p1",  name:"Org Studio North Star Ph.1",        size:"L", startDate:"2026-03-10", endDate:"2026-03-27", squad:"EH", pms:["Austin Vogel","David Matevosyan"] },
+      { id:"p2",  name:"Titan Exchange Redesign",           size:"L", startDate:"2026-03-12", endDate:"2026-04-10", squad:"EH", pms:["Anna Arakelyan"] },
+      { id:"p36", name:"Audit Trails Enhancements",         size:"M", startDate:"2026-03-20", endDate:"2026-05-05", squad:"EH", pms:["Anna Arakelyan"] },
       { id:"p38", name:"Role Creation",                     size:"M", startDate:"2026-04-30", endDate:"2026-05-30", squad:"GUM",            pms:["Lusine Martirosyan"] },
       { id:"p39", name:"Audit Trails and Roles Comparison", size:"M", startDate:"2026-05-30", endDate:"2026-06-30", squad:"GUM",            pms:["Lusine Martirosyan"] },
       { id:"p40", name:"Home Page",                         size:"M", startDate:"2026-06-30", endDate:"2026-07-30", squad:"GUM",            pms:["Lusine Martirosyan"] },
@@ -2030,6 +2060,8 @@ export default function App() {
             if (!best[p.name] || (isLeaveItem(p) && !isLeaveItem(best[p.name]))) best[p.name] = p;
           });
           d.projects = d.projects.filter(p => !LEAVE_TYPES.includes(p.name) || best[p.name] === p);
+          // Normalize squad names from long to short
+          d.projects.forEach(p => { if (p.squad) p.squad = normSquad(p.squad); });
         });
       });
     });
@@ -2062,6 +2094,7 @@ export default function App() {
           if (!startDate || !endDate) continue;
           const val = v => { const x = row[v]?.trim(); return (!x || x === "-") ? "" : x; };
           const size = ["XS","S","M","L","XL"].includes(val(cSz)) ? val(cSz) : "M";
+          const squad = normSquad(val(cSq));
           let loc = dMap[dFull];
           if (!loc) {
             const fn = dFull.split(" ")[0];
@@ -2097,7 +2130,7 @@ export default function App() {
           const designer = squads[loc.si].designers[loc.di];
           // Merge by project name (designer name is now canonical full name)
           const xi = designer.projects.findIndex(p => !isLeaveItem(p) && p.name === pName);
-          const proj = { name:pName, size, squad:val(cSq), pms:val(cPM)?[val(cPM)]:[], type:val(cT), status:val(cSt), startDate, endDate };
+          const proj = { name:pName, size, squad, pms:val(cPM)?[val(cPM)]:[], type:val(cT), status:val(cSt), startDate, endDate };
           if (xi >= 0) { designer.projects[xi] = { ...designer.projects[xi], ...proj }; totalUpdated++; }
           else { designer.projects.push({ id:`p_sh_${mgrKey}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, ...proj }); totalAdded++; }
         }
