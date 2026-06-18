@@ -2114,6 +2114,7 @@ export default function App() {
           const fn = d.name.split(" ")[0];
           if (!dMap[fn]) dMap[fn] = { si, di };
         }));
+        const seenIds = new Set();
         for (const row of rows.slice(1)) {
           const dFull = row[cD]?.trim(), pName = row[cP]?.trim();
           if (!dFull || !pName) continue;
@@ -2161,9 +2162,13 @@ export default function App() {
           let xi = designer.projects.findIndex(p => !isLeaveItem(p) && p.name === pName);
           if (xi < 0 && startDate && squad) xi = designer.projects.findIndex(p => !isLeaveItem(p) && p.startDate === startDate && normSquad(p.squad||"") === squad);
           if (xi < 0 && startDate) xi = designer.projects.findIndex(p => !isLeaveItem(p) && p.startDate === startDate && p.endDate === endDate);
-          if (xi >= 0) { designer.projects[xi] = { ...designer.projects[xi], ...proj }; totalUpdated++; }
-          else { designer.projects.push({ id:`p_sh_${mgrKey}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, ...proj }); totalAdded++; }
+          if (xi >= 0) { designer.projects[xi] = { ...designer.projects[xi], ...proj }; seenIds.add(designer.projects[xi].id); totalUpdated++; }
+          else { const id=`p_sh_${mgrKey}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`; designer.projects.push({ id, ...proj }); seenIds.add(id); totalAdded++; }
         }
+        // Remove sheet-synced projects that are no longer in the sheet
+        squads.forEach(sq => sq.designers.forEach(d => {
+          d.projects = d.projects.filter(p => !p.id?.startsWith("p_sh_") || seenIds.has(p.id));
+        }));
         // Update teams settings to use canonical full names — fixes Timeline visibility filter
         const canonical = MANAGER_DESIGNERS[mgrKey] || [];
         if (!nt[mgrKey]) nt[mgrKey] = {};
