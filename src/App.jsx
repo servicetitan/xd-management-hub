@@ -1569,8 +1569,9 @@ function AnalyticsPage({state,teams,setDrawer,setManager,setPage}) {
             return <div style={{background:"#fff",borderRadius:16,border:"1px solid #E8EAED",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",padding:"16px 20px"}}>
               <div style={{fontSize:14,fontWeight:600,color:"#0F172A",marginBottom:12}}>Most Overloaded Designers</div>
               <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                {top5.map((d,i)=>(
-                  <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,background:"#FFEBEE"}}>
+                {top5.map((d,i)=>{
+                  const mgrKey=DESIGNER_CANONICAL_MGR[d.name.split(" ")[0].toLowerCase()];
+                  return <div key={i} onClick={()=>{if(mgrKey){setManager(mgrKey);setPage("timeline");}}} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,background:"#FFEBEE",cursor:mgrKey?"pointer":"default",transition:"opacity 0.15s"}} onMouseEnter={e=>e.currentTarget.style.opacity="0.75"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
                     <div style={{width:20,height:20,borderRadius:"50%",background:"#C62828",color:"#fff",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</div>
                     <div style={{flex:1,fontSize:13,fontWeight:600,color:"#0F172A"}}>{d.name}</div>
                     <div style={{fontSize:12,color:"#C62828",fontWeight:700,marginRight:4}}>{d.count} project{d.count!==1?"s":""}</div>
@@ -1579,8 +1580,8 @@ function AnalyticsPage({state,teams,setDrawer,setManager,setPage}) {
                         <span key={sz} style={{fontSize:11,fontWeight:700,color:"#fff",background:sizeColor[sz],borderRadius:4,padding:"1px 6px"}}>{c > 1 ? `${c}×` : ""}{sz}</span>
                       ))}
                     </div>
-                  </div>
-                ))}
+                  </div>;
+                })}
               </div>
             </div>;
           })()}
