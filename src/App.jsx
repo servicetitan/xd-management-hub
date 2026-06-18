@@ -2156,9 +2156,11 @@ export default function App() {
             loc = { si:0, di }; dMap[dFull] = loc; dMap[dFull.split(" ")[0]] = loc;
           }
           const designer = squads[loc.si].designers[loc.di];
-          // Merge by project name (designer name is now canonical full name)
-          const xi = designer.projects.findIndex(p => !isLeaveItem(p) && p.name === pName);
           const proj = { name:pName, size, squad, pms:val(cPM)?[val(cPM)]:[], type:val(cT), status:val(cSt), startDate, endDate };
+          // Match by name first; fall back to startDate+squad so renames update in place
+          let xi = designer.projects.findIndex(p => !isLeaveItem(p) && p.name === pName);
+          if (xi < 0 && startDate && squad) xi = designer.projects.findIndex(p => !isLeaveItem(p) && p.startDate === startDate && normSquad(p.squad||"") === squad);
+          if (xi < 0 && startDate) xi = designer.projects.findIndex(p => !isLeaveItem(p) && p.startDate === startDate && p.endDate === endDate);
           if (xi >= 0) { designer.projects[xi] = { ...designer.projects[xi], ...proj }; totalUpdated++; }
           else { designer.projects.push({ id:`p_sh_${mgrKey}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, ...proj }); totalAdded++; }
         }
