@@ -1557,7 +1557,33 @@ function AnalyticsPage({state,teams,setDrawer,setManager,setPage}) {
               ))}</tbody>
             </table>
           </div>
-          {flags.length>0&&<div style={{background:"#fff",borderRadius:16,border:"1px solid #E8EAED",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",padding:"16px 20px"}}><div style={{fontSize:14,fontWeight:600,color:"#0F172A",marginBottom:12}}>Attention Needed</div><div style={{display:"flex",flexDirection:"column",gap:6}}>{flags.slice(0,8).map((fl,i)=><div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",borderRadius:6,background:fl.severity==="red"?"#FFEBEE":"#E8F5E9"}}><div style={{width:6,height:6,borderRadius:"50%",background:fl.severity==="red"?"#C62828":"#2E7D32",flexShrink:0}}/><div style={{fontSize:12,color:"#0F172A"}}>{fl.text}</div></div>)}</div></div>}
+          {(()=>{
+            const top5=overloadedAll.map(d=>{
+              const active=d.projects.filter(p=>parseD(p.startDate)<=today&&parseD(p.endDate)>=today&&!isLeaveItem(p));
+              const score=active.reduce((s,p)=>s+(SIZE_POINTS[p.size]||0),0);
+              const sizes=["XL","L","M","S","XS"].flatMap(sz=>{const c=active.filter(p=>p.size===sz).length;return c?[{sz,c}]:[];});
+              return {name:d.name,count:active.length,score,sizes};
+            }).sort((a,b)=>b.score-a.score||b.count-a.count).slice(0,5);
+            if(!top5.length) return null;
+            const sizeColor={XS:"#607D8B",S:"#0288D1",M:"#388E3C",L:"#E65100",XL:"#C62828"};
+            return <div style={{background:"#fff",borderRadius:16,border:"1px solid #E8EAED",boxShadow:"0 1px 3px rgba(0,0,0,0.06)",padding:"16px 20px"}}>
+              <div style={{fontSize:14,fontWeight:600,color:"#0F172A",marginBottom:12}}>Most Overloaded Designers</div>
+              <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                {top5.map((d,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",borderRadius:8,background:"#FFEBEE"}}>
+                    <div style={{width:20,height:20,borderRadius:"50%",background:"#C62828",color:"#fff",fontSize:11,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</div>
+                    <div style={{flex:1,fontSize:13,fontWeight:600,color:"#0F172A"}}>{d.name}</div>
+                    <div style={{fontSize:12,color:"#C62828",fontWeight:700,marginRight:4}}>{d.count} project{d.count!==1?"s":""}</div>
+                    <div style={{display:"flex",gap:4}}>
+                      {d.sizes.map(({sz,c})=>(
+                        <span key={sz} style={{fontSize:11,fontWeight:700,color:"#fff",background:sizeColor[sz],borderRadius:4,padding:"1px 6px"}}>{c > 1 ? `${c}×` : ""}{sz}</span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>;
+          })()}
         </div>
       )}
       {tab==="capacity"&&(
