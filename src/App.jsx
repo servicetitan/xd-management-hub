@@ -63,8 +63,9 @@ const SQUAD_LONG_TO_SHORT = {
   "E2E Experience":"EE","Ti Data Platform":"DP",
   "Ti ML Platform":"TI","Titan Intelligence Standalone":"TI","TI Atlas/Assist Platform":"TI",
   "Glass Doctor 2.0":"GD20",
+  "Payables":"PAY","Payments Platform":null,
 };
-const normSquad = s => SQUAD_LONG_TO_SHORT[s] || s;
+const normSquad = s => { const v = SQUAD_LONG_TO_SHORT[s]; return v === undefined ? s : v; };
 
 const SHEET_ID = "1xMPr5xf_bZBLuOyyMCpc41mbCyhPxTPEUnV7dkEG750";
 const SHEET_TAB_MAP = {
@@ -2061,7 +2062,7 @@ export default function App() {
           });
           d.projects = d.projects.filter(p => !LEAVE_TYPES.includes(p.name) || best[p.name] === p);
           // Normalize squad names from long to short
-          d.projects.forEach(p => { if (p.squad) p.squad = normSquad(p.squad); });
+          d.projects.forEach(p => { if (p.squad) p.squad = normSquad(p.squad) || ""; });
         });
       });
     });
@@ -2207,13 +2208,13 @@ export default function App() {
 
     const rawSquads = (t.squads?.length) ? t.squads : (init.squads || []);
     const normDesignerSquads = t.designerSquads
-      ? Object.fromEntries(Object.entries(t.designerSquads).map(([d, sqs]) => [d, sqs.map(normSquad)]))
+      ? Object.fromEntries(Object.entries(t.designerSquads).map(([d, sqs]) => [d, sqs.map(normSquad).filter(Boolean)]))
       : t.designerSquads;
     return {
       ...init,
       ...t,
       designers: designers.length ? designers : canonical,
-      squads: rawSquads.map(normSquad).filter(s => !s.includes(" . ")),
+      squads: rawSquads.map(normSquad).filter(s => s && !s.includes(" . ")),
       pms:    (t.pms?.length)    ? t.pms    : (init.pms    || []),
       ...(normDesignerSquads !== undefined ? { designerSquads: normDesignerSquads } : {}),
     };
